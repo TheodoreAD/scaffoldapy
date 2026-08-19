@@ -1,0 +1,43 @@
+"""Fan-out to sibling MCP servers. asyncio.TaskGroup, not gather() — cancels sibling tasks on the
+first uncaught exception where gather() leaves them running orphaned, a real resource leak for a
+rate-limited/session-holding client. See skills/python-conventions's "Async and concurrency" in
+power-user-linux-setup for the full rationale."""
+
+import asyncio
+import contextlib
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class SourceResult:
+    source: str
+    value: str
+
+
+class SourceQueryError(Exception):
+    """Raised when a single source's query fails — caught per-child so one source's failure doesn't
+    cancel the whole fan-out."""
+
+
+async def _query_source(source: str) -> SourceResult:
+    """Stand-in for a real `fastmcp.Client` call to one sibling MCP server. Replace with the actual
+    call once sibling servers are registered."""
+    await asyncio.sleep(0)
+    return SourceResult(source=source, value="placeholder")
+
+
+async def query_sources(sources: list[str], *, max_concurrent: int = 3) -> list[SourceResult]:
+    """Fan out to several sources concurrently, capped at max_concurrent in flight. A single
+    source failing is recorded and skipped rather than aborting the whole batch."""
+    semaphore = asyncio.Semaphore(max_concurrent)
+    results: list[SourceResult] = []
+
+    async def _bounded_query(source: str) -> None:
+        async with semaphore, contextlib.suppress(SourceQueryError):
+            results.append(await _query_source(source))
+
+    async with asyncio.TaskGroup() as tg:
+        for source in sources:
+            tg.create_task(_bounded_query(source))
+
+    return results

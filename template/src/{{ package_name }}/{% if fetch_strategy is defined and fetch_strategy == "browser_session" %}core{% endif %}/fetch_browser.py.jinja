@@ -1,0 +1,46 @@
+"""CDP-driven fetch: attaches to an already-running, already-logged-in Chrome instance rather than
+launching one — the login session must be a human's, preserved across runs, never a throwaway
+Playwright-managed browser. See README.md's "Chrome session setup" section for the manual step this
+depends on."""
+
+from playwright.sync_api import sync_playwright
+
+from .politeness import RateLimiter
+
+
+class PoliteBrowserFetcher:
+    _cdp_url: str
+    _rate_limiter: RateLimiter
+
+    def __init__(self, cdp_url: str) -> None:
+        self._cdp_url = cdp_url
+        self._rate_limiter = RateLimiter()
+        self._playwright = sync_playwright().start()
+        self._browser = self._playwright.chromium.connect_over_cdp(cdp_url)
+
+    def close(self) -> None:
+        self._browser.close()
+        self._playwright.stop()
+
+    def fetch(self, url: str) -> str:
+        """Cached, rate-limited page-content render. Replace with real caching if needed."""
+        self._rate_limiter.wait()
+        context = self._browser.contexts[0]
+        page = context.new_page()
+        try:
+            _ = page.goto(url)
+            return page.content()
+        finally:
+            page.close()
+
+    def open_tabs(self, urls: list[str]) -> list[tuple[str, str | None]]:
+        """Opens visible tabs and leaves them open, no content extraction — useful for anything
+        needing a human to look at the page (e.g. a captcha)."""
+        context = self._browser.contexts[0]
+        results: list[tuple[str, str | None]] = []
+        for url in urls:
+            self._rate_limiter.wait()
+            page = context.new_page()
+            _ = page.goto(url)
+            results.append((url, page.url))
+        return results

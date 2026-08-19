@@ -1,0 +1,10 @@
+"""FastAPI entrypoint. Run with `uv run uvicorn {{ package_name }}.app:app --reload`."""
+
+from fastapi import FastAPI
+
+app = FastAPI(title="{{ package_name }}", description="{{ description }}")
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}

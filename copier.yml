@@ -1,0 +1,61 @@
+_subdirectory: template
+
+package_name:
+  type: str
+  help: "Python package name (snake_case), e.g. freshful_polite_mcp"
+  validator: >-
+    {% if not (package_name | regex_search('^[a-z][a-z0-9_]*$')) %}
+    Must be snake_case: lowercase letters, digits, underscores, starting with a letter.
+    {% endif %}
+
+description:
+  type: str
+  help: "One-line description of the project"
+
+interface:
+  type: str
+  help: "What does this repo ship?"
+  choices:
+    "MCP server (FastMCP, stdio) — e.g. olx-polite-mcp, temu-polite-mcp": mcp_server
+    "Command-line tool (Typer)": cli
+    "HTTP web service (FastAPI)": web_service
+    "Agent Skill only, no server process — e.g. product-research-pipeline": skill
+    "Plain importable package, no entrypoint": library
+
+fetch_strategy:
+  type: str
+  when: "{{ interface not in ['skill', 'library'] }}"
+  default: none
+  help: "Does this project fetch data from an external source?"
+  choices:
+    "No owned fetch layer": none
+    "Plain polite HTTP fetch": http
+    "CDP-driven, logged-in Chrome session": browser_session
+
+multi_source:
+  type: bool
+  when: "{{ fetch_strategy is defined and fetch_strategy != 'none' }}"
+  default: false
+  help: "Pull from more than one upstream, via a pluggable per-source adapter?"
+
+source_key:
+  type: str
+  when: "{{ fetch_strategy is defined and fetch_strategy != 'none' }}"
+  help: >-
+    Source identifier (snake_case), e.g. olx. Names the first source module either way — a flat
+    single-source layout, or the first entry under sources/ when multi_source is set (later sources
+    are added by hand, or via a future `copier update` pass — the Q&A flow only seeds the first).
+  validator: >-
+    {% if not (source_key | regex_search('^[a-z][a-z0-9_]*$')) %}
+    Must be snake_case: lowercase letters, digits, underscores, starting with a letter.
+    {% endif %}
+
+github_repo:
+  type: str
+  help: "e.g. TheodoreAD/freshful-polite-mcp — used in README install instructions"
+
+# No _tasks hook for `inv ai.init` here on purpose: it must run with its cwd inside a
+# power-user-linux-setup checkout (invoke's tasks.py discovery walks up from cwd, not an installed
+# copy), which this template has no reliable way to locate on an arbitrary machine. The generated
+# README's dev-loop section documents it as a one-time manual step instead — see mcp-skill-shipping's
+# own documented flow, which already works this way for every existing sibling repo.

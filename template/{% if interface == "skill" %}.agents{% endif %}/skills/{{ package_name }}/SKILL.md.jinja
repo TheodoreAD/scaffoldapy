@@ -1,0 +1,22 @@
+---
+name: {{ package_name.replace('_', '-') }}
+description: "TODO: one line — when should an agent reach for this skill? Be specific about trigger
+  phrases and situations, not just a restatement of the name."
+---
+
+# {{ package_name.replace('_', '-') }}
+
+{{ description }}
+
+## Procedure
+
+TODO: the actual steps this skill walks through. If it orchestrates sibling MCP servers, see
+`src/{{ package_name }}/orchestrator.py` for the fan-out pattern (asyncio.TaskGroup, not gather() —
+cancels sibling tasks on the first uncaught exception where gather() leaves them running orphaned).
+
+## Full rationale
+
+TODO: link a `references/rationale.md` here if this skill's design needs a citation trail (prior art
+considered, why a decision was made a particular way) — see `skills/session-harvest/references/
+rationale.md` in `power-user-linux-setup` for the pattern, if this skill encodes a convention that
+should self-update on friction rather than just being a one-shot task.

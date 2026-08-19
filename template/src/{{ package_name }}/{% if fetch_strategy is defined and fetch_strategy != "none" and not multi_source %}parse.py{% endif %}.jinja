@@ -1,0 +1,10 @@
+"""Plain parse functions for {{ source_key }} — no adapter class needed for a single source.
+Replace with real parsing once the actual page structure is known."""
+
+from .models import Result
+
+
+def parse_result(html: str, *, url: str) -> Result:
+    """Stand-in — replace with real HTML parsing (e.g. via `selectolax`/`bs4`)."""
+    del html  # placeholder until real parsing is implemented
+    return Result(source="{{ source_key }}", url=url)

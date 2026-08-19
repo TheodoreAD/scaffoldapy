@@ -1,0 +1,56 @@
+"""FastMCP entrypoint. Logging routed to stderr — the stdio transport reserves stdout entirely for
+JSON-RPC framing, so a stray print() or unconfigured logging call corrupts the stream. See
+skills/python-conventions's "MCP-stdio logging discipline" in power-user-linux-setup for the full
+rationale."""
+
+import logging
+import sys
+from typing import Annotated
+
+from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
+from pydantic import Field
+
+logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+mcp = FastMCP("{{ package_name }}")
+
+
+class LookupError_(Exception):
+    """Root exception for this server's lookups — rename to fit the actual domain."""
+
+
+def _example_lookup(query: str) -> str:
+    """Plain, testable helper — the tool function below is a thin wrapper deciding what crosses the
+    MCP boundary (see example_tool)."""
+    if not query:
+        raise LookupError_("empty query")
+    return f"result for {query!r}"
+
+
+@mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False})
+def example_tool(
+    query: Annotated[str, Field(description="What to look up. Replace with a real parameter.")],
+) -> str:
+    """Replace with a real tool. Docstrings here are read by an LLM client at inference time to
+    decide whether/how to call this tool — write to that bar (what it does, when to use it vs. a
+    sibling tool, where each non-obvious parameter's value comes from), not a one-line PEP 257
+    summary. At least 3-4 sentences for anything non-trivial.
+    """
+    # The tool boundary is the one place that decides what's safe to expose to the client — never
+    # let an arbitrary caught exception's str() reach it unreviewed. FastMCP's default
+    # (mask_error_details=False) already unmasks plain exceptions, so ToolError is used here to give
+    # a deliberately worded, stable message instead of relying on that default.
+    try:
+        return _example_lookup(query)
+    except LookupError_ as e:
+        raise ToolError(f"Lookup failed: {query}") from e
+
+
+def main() -> None:
+    mcp.run()
+
+
+if __name__ == "__main__":
+    main()

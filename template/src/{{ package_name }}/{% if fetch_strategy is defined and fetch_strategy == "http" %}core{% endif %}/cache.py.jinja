@@ -1,0 +1,22 @@
+"""Disk-backed HTTP response cache — avoids re-fetching the same URL within its TTL, direct service
+to the "polite" mission (less repeat load on the target site), not just a perf win."""
+
+import diskcache
+
+DEFAULT_TTL_SECONDS = 60 * 60
+
+
+class ResponseCache:
+    _cache: diskcache.Cache
+    _ttl_seconds: int
+
+    def __init__(self, directory: str = ".cache/{{ package_name }}", ttl_seconds: int = DEFAULT_TTL_SECONDS) -> None:
+        self._cache = diskcache.Cache(directory)
+        self._ttl_seconds = ttl_seconds
+
+    def get(self, url: str) -> str | None:
+        value = self._cache.get(url)
+        return value if isinstance(value, str) else None
+
+    def set(self, url: str, content: str) -> None:
+        _ = self._cache.set(url, content, expire=self._ttl_seconds)

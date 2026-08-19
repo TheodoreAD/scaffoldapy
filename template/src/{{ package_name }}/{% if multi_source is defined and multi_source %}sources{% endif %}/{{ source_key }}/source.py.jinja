@@ -1,0 +1,18 @@
+"""Concrete `SourceAdapter` for {{ source_key }}."""
+
+from {{ package_name }}.models import Result
+from {{ package_name }}.sources.base import SourceAdapter
+
+from .constants import BASE_URL
+from .parse import parse_detail, parse_search_results
+
+
+class {{ source_key | capitalize }}Source(SourceAdapter):
+    def _build_query(self, query: str) -> str:
+        return f"{BASE_URL}/search?q={query}"
+
+    def _parse_results(self, html: str) -> list[Result]:
+        return parse_search_results(html)
+
+    def _parse_detail(self, html: str, *, url: str) -> Result:
+        return parse_detail(html, url=url)

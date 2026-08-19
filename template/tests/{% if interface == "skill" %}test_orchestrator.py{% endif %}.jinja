@@ -1,0 +1,8 @@
+import asyncio
+
+from {{ package_name }}.orchestrator import query_sources
+
+
+def test_query_sources_returns_a_result_per_source() -> None:
+    results = asyncio.run(query_sources(["a", "b"]))
+    assert {r.source for r in results} == {"a", "b"}

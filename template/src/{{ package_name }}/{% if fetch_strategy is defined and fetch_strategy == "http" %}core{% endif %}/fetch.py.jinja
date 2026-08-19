@@ -1,0 +1,59 @@
+"""httpx client, reused for its lifetime, with tenacity retry/backoff scoped to transient network
+errors and a narrow retryable-status set — never a plain 4xx "real answer" like 404. See
+skills/python-conventions/references/snippets/http-retry.py in power-user-linux-setup for the
+source this was built from."""
+
+import httpx
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_random_exponential
+
+from .cache import ResponseCache
+from .politeness import RateLimiter, RobotsGuard
+
+REQUEST_TIMEOUT_SECONDS = 15.0
+RETRYABLE_STATUS_CODES = {429, 502, 503, 504}
+
+
+def _is_retryable(exc: BaseException) -> bool:
+    if isinstance(exc, httpx.TransportError):
+        return True
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code in RETRYABLE_STATUS_CODES
+    return False
+
+
+class PoliteFetcher:
+    """One httpx.Client per instance, constructed once and reused. Wraps a RateLimiter, RobotsGuard,
+    and ResponseCache — replace base_url with the real upstream."""
+
+    _client: httpx.Client
+    _rate_limiter: RateLimiter
+    _robots_guard: RobotsGuard
+    _cache: ResponseCache
+
+    def __init__(self, base_url: str) -> None:
+        self._client = httpx.Client(base_url=base_url, timeout=REQUEST_TIMEOUT_SECONDS)
+        self._rate_limiter = RateLimiter()
+        self._robots_guard = RobotsGuard()
+        self._cache = ResponseCache()
+
+    def close(self) -> None:
+        self._client.close()
+
+    @retry(
+        retry=retry_if_exception(_is_retryable),
+        wait=wait_random_exponential(multiplier=1, max=10),
+        stop=stop_after_attempt(3),
+        reraise=True,
+    )
+    def get(self, path: str) -> str:
+        full_url = str(httpx.URL(self._client.base_url).join(path))
+        if not self._robots_guard.can_fetch(full_url):
+            raise PermissionError(f"robots.txt disallows fetching {full_url}")
+        cached = self._cache.get(full_url)
+        if cached is not None:
+            return cached
+        self._rate_limiter.wait()
+        response = self._client.get(path)
+        _ = response.raise_for_status()
+        self._cache.set(full_url, response.text)
+        return response.text

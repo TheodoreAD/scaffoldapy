@@ -1,0 +1,82 @@
+# {{ package_name }}
+
+{{ description }}
+
+## Dev loop
+
+- `uv sync` + `direnv allow` — installs runtime + dev dependencies (`repo-tasks`, `pytest`, `ruff`,
+  `basedpyright`) and puts `.venv/bin` on `PATH` automatically, so plain `pytest`/`inv` work directly
+  (no `uv run` wrapper needed) once allowed.
+- `inv precommit` before considering a change done — fixes what's auto-fixable, then runs the full
+  check gate. See [`repo-tasks`](https://github.com/TheodoreAD/repo-tasks) for what each step does.
+- `pytest` — tests live in `tests/`, fixture-based, no live network calls.
+- One-time, from a `power-user-linux-setup` checkout: `inv ai.init --dir <this-repo-path>` — generates
+  `AGENTS.md` + the `.claude/skills` symlink. Never overwrites existing content, safe to re-run.
+
+{% if interface == "mcp_server" -%}
+## Installation
+
+Add a stable `PATH` binary via `uv tool`, then register it with Claude Code:
+
+```shell
+# while actively developing (editable, picks up local edits):
+uv tool install -e ~/projects/github.com-personal/{{ package_name.replace('_', '-') }}
+
+# once not actively iterating, from GitHub instead:
+uv tool install git+https://github.com/{{ github_repo }}
+
+# either way, registration is the same one-liner:
+claude mcp add --scope user {{ package_name }} {{ package_name }}
+```
+
+`--scope user` makes the server available in every project on this machine. See
+[`mcp-skill-shipping`](https://github.com/TheodoreAD/power-user-linux-setup/blob/master/skills/mcp-skill-shipping/SKILL.md)
+for the full pattern (project-scope alternative, switching install sources, etc.).
+{% elif interface == "skill" -%}
+## Installation
+
+Skills ship via the existing `inv ai.skills` mechanism — no per-repo install step. Once this repo is
+public with a real skill directory, add it to a `power-user-linux-setup` `setup.toml` package:
+
+```toml
+skills = [{ source = "npx", repo = "{{ github_repo }}" }]
+```
+
+then `inv ai.skills` makes it available globally, same as every other declared skill.
+{% elif interface == "cli" -%}
+## Installation
+
+```shell
+# while actively developing (editable, picks up local edits):
+uv tool install -e ~/projects/github.com-personal/{{ package_name.replace('_', '-') }}
+
+# once not actively iterating, from GitHub instead:
+uv tool install git+https://github.com/{{ github_repo }}
+```
+
+Drops a `{{ package_name }}` binary on `PATH` (`~/.local/bin/` by default).
+{% elif interface == "web_service" -%}
+## Running
+
+```shell
+uv sync
+uvicorn {{ package_name }}.app:app --reload
+```
+{% elif interface == "library" -%}
+## Installation
+
+```shell
+uv add git+https://github.com/{{ github_repo }}
+```
+{% endif -%}
+{% if fetch_strategy is defined and fetch_strategy == "browser_session" %}
+## Chrome session setup
+
+This project drives an already-running, already-logged-in Chrome instance over CDP rather than
+launching its own — attach, never launch, so the login session is a human's, not a throwaway one:
+
+1. Start Chrome with remote debugging enabled and a dedicated profile, e.g.
+   `google-chrome --remote-debugging-port=9333 --user-data-dir=~/.cache/{{ package_name }}-chrome`.
+2. Log in manually, once, in that Chrome window.
+3. Leave it running — `{{ package_name }}` connects to it via `connect_over_cdp`, never `.launch()`.
+{% endif -%}

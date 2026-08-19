@@ -1,0 +1,14 @@
+from {{ package_name }}.server import LookupError_, _example_lookup
+
+
+def test_lookup_returns_result_for_query() -> None:
+    assert _example_lookup("widget") == "result for 'widget'"
+
+
+def test_lookup_raises_for_empty_query() -> None:
+    try:
+        _ = _example_lookup("")
+    except LookupError_:
+        pass
+    else:
+        raise AssertionError("expected LookupError_ for an empty query")

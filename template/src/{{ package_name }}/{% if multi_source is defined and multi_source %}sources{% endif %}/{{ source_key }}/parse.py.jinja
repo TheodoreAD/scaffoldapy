@@ -1,0 +1,16 @@
+"""Plain parse functions for {{ source_key }} — kept separate from source.py so they're easily
+unit-testable against saved HTML fixtures."""
+
+from {{ package_name }}.models import Result
+
+
+def parse_search_results(html: str) -> list[Result]:
+    """TODO: real parsing for {{ source_key }}."""
+    del html
+    return []
+
+
+def parse_detail(html: str, *, url: str) -> Result:
+    """TODO: real parsing for {{ source_key }}."""
+    del html
+    return Result(source="{{ source_key }}", url=url)

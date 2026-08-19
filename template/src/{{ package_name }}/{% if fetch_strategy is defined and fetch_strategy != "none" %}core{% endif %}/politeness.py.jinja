@@ -1,0 +1,64 @@
+"""Rate limiting and robots.txt compliance — the "polite" half of a polite fetcher. Replace the
+per-host delay and the robots-guard's user agent with real values for {{ source_key }}."""
+
+import threading
+import time
+import urllib.robotparser
+from urllib.parse import urlparse
+
+MIN_DELAY_SECONDS = 2.0
+
+
+class RateLimiter:
+    """One instance per upstream host — blocks the calling thread until at least
+    `min_delay_seconds` has passed since the last request this instance allowed."""
+
+    _min_delay_seconds: float
+    _lock: threading.Lock
+    _last_request_at: float | None
+
+    def __init__(self, min_delay_seconds: float = MIN_DELAY_SECONDS) -> None:
+        self._min_delay_seconds = min_delay_seconds
+        self._lock = threading.Lock()
+        self._last_request_at = None
+
+    def wait(self) -> None:
+        with self._lock:
+            now = time.monotonic()
+            if self._last_request_at is not None:
+                elapsed = now - self._last_request_at
+                remaining = self._min_delay_seconds - elapsed
+                if remaining > 0:
+                    time.sleep(remaining)
+            self._last_request_at = time.monotonic()
+
+
+class RobotsGuard:
+    """Caches one `robotparser.RobotFileParser` per host, fetched on first use."""
+
+    _user_agent: str
+    _parsers: dict[str, urllib.robotparser.RobotFileParser]
+
+    def __init__(self, user_agent: str = "{{ package_name }}") -> None:
+        self._user_agent = user_agent
+        self._parsers = {}
+
+    def _parser_for(self, url: str) -> urllib.robotparser.RobotFileParser:
+        host = urlparse(url).netloc
+        if host not in self._parsers:
+            parser = urllib.robotparser.RobotFileParser()
+            parser.set_url(f"https://{host}/robots.txt")
+            parser.read()
+            self._parsers[host] = parser
+        return self._parsers[host]
+
+    def can_fetch(self, url: str) -> bool:
+        return self._parser_for(url).can_fetch(self._user_agent, url)
+
+
+def test_rate_limiter_enforces_minimum_delay() -> None:
+    limiter = RateLimiter(min_delay_seconds=0.05)
+    start = time.monotonic()
+    limiter.wait()
+    limiter.wait()
+    assert time.monotonic() - start >= 0.05

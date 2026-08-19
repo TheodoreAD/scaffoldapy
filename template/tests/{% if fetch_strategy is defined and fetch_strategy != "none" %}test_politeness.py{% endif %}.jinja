@@ -1,0 +1,11 @@
+import time
+
+from {{ package_name }}.core.politeness import RateLimiter
+
+
+def test_rate_limiter_enforces_minimum_delay() -> None:
+    limiter = RateLimiter(min_delay_seconds=0.05)
+    start = time.monotonic()
+    limiter.wait()
+    limiter.wait()
+    assert time.monotonic() - start >= 0.05

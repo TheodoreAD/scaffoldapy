@@ -1,0 +1,11 @@
+"""Shared, source-agnostic data models. Add real fields as sources are implemented."""
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Result:
+    """Replace with real fields once at least one source is implemented."""
+
+    source: str
+    url: str

@@ -1,0 +1,15 @@
+"""Typer CLI entrypoint."""
+
+import typer
+
+app = typer.Typer(help="{{ description }}")
+
+
+@app.command()
+def example(query: str) -> None:
+    """Replace with a real command."""
+    typer.echo(f"result for {query!r}")
+
+
+if __name__ == "__main__":
+    app()
