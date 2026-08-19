@@ -54,6 +54,16 @@ github_repo:
   type: str
   help: "e.g. TheodoreAD/freshful-polite-mcp — used in README install instructions"
 
+with_docs:
+  type: bool
+  default: false
+  help: >-
+    Publish a docs site (mkdocs.yml + docs/, built with zensical, deployed to GitHub Pages via
+    .github/workflows/docs.yml on every push to main)? Recommended for medium/larger projects — a
+    good README is usually enough for a small one. WARNING: GitHub Pages sites are public even for
+    a private GitHub repo (true as of the last check) — don't enable this if the docs would ever
+    contain anything sensitive.
+
 # No _tasks hook for `inv ai.init` here on purpose: it must run with its cwd inside a
 # power-user-linux-setup checkout (invoke's tasks.py discovery walks up from cwd, not an installed
 # copy), which this template has no reliable way to locate on an arbitrary machine. The generated

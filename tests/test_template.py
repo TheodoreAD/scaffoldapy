@@ -136,3 +136,28 @@ def test_library_seeds_nothing_but_the_bare_package(tmp_path: Path) -> None:
     for extra in ("server.py", "cli.py", "app.py", "orchestrator.py", "core", "sources"):
         assert not (dst / "src" / "example_pkg" / extra).exists()
     assert not (dst / ".agents").exists()
+
+
+def test_with_docs_off_by_default_seeds_no_docs_site(tmp_path: Path) -> None:
+    dst = _render(tmp_path, COMBINATIONS["library"])
+    assert not (dst / "mkdocs.yml").exists()
+    assert not (dst / "docs").exists()
+    assert not (dst / ".github" / "workflows" / "docs.yml").exists()
+    assert "docs" not in tomllib.loads((dst / "pyproject.toml").read_text())["dependency-groups"]
+
+
+def test_with_docs_seeds_docs_site(tmp_path: Path) -> None:
+    dst = _render(tmp_path, {**COMBINATIONS["library"], "with_docs": True})
+
+    mkdocs_yml = dst / "mkdocs.yml"
+    assert mkdocs_yml.exists()
+    mkdocs_text = mkdocs_yml.read_text()
+    assert "site_name: An example project." in mkdocs_text
+    assert "repo_url: https://github.com/TheodoreAD/example-pkg" in mkdocs_text
+
+    assert (dst / "docs" / "index.md").exists()
+    assert (dst / ".github" / "workflows" / "docs.yml").exists()
+
+    pyproject = tomllib.loads((dst / "pyproject.toml").read_text())
+    assert "zensical" in pyproject["dependency-groups"]["docs"]
+    assert "site/" in (dst / ".gitignore").read_text()

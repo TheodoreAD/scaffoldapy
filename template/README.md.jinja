@@ -4,9 +4,10 @@
 
 ## Dev loop
 
-- `uv sync` + `direnv allow` — installs runtime + dev dependencies (`repo-tasks`, `pytest`, `ruff`,
-  `basedpyright`) and puts `.venv/bin` on `PATH` automatically, so plain `pytest`/`inv` work directly
-  (no `uv run` wrapper needed) once allowed.
+- `uv sync` once, then `inv dev-env.setup` (or `uv run inv dev-env.setup` before direnv has put
+  `.venv/bin` on `PATH`) — wires `direnv allow` and Claude Code's Bash-tool hook so both a shell and
+  an agent auto-activate the venv. Safe to re-run any time, e.g. after a `uv sync` that picks up new
+  dependencies.
 - `inv quality.precommit` before considering a change done — fixes what's auto-fixable, then runs the
   full check gate. See [`repo-tasks`](https://github.com/TheodoreAD/repo-tasks) for what each step
   does, and how new task modules (`docker`, `python_pkg`, ...) show up under their own prefix
@@ -14,7 +15,11 @@
 - `pytest` — tests live in `tests/`, fixture-based, no live network calls.
 - One-time, from a `power-user-linux-setup` checkout: `inv ai.init --dir <this-repo-path>` — generates
   `AGENTS.md` + the `.claude/skills` symlink. Never overwrites existing content, safe to re-run.
-
+{% if with_docs -%}
+- `inv docs.build` builds the docs site (zensical, strict mode) to `site/`; `inv docs.serve` runs it
+  locally with live reload. `.github/workflows/docs.yml` deploys it to GitHub Pages automatically on
+  every push to `main` — **publicly**, even if this repo itself is private.
+{% endif %}
 {% if interface == "mcp_server" -%}
 ## Installation
 

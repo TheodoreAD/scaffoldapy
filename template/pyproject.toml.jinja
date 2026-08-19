@@ -45,6 +45,11 @@ dev = [
   "repo-tasks",
   "ruff",
 ]
+{%- if with_docs %}
+docs = [
+  "zensical",
+]
+{%- endif %}
 
 [build-system]
 requires = ["hatchling"]

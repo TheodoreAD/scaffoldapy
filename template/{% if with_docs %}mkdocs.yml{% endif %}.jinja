@@ -1,0 +1,72 @@
+site_name: {{ description }}
+site_url: https://{{ github_repo.split('/')[0] }}.github.io/{{ github_repo.split('/')[1] }}
+repo_url: https://github.com/{{ github_repo }}
+repo_name: {{ github_repo }}
+docs_dir: docs
+site_dir: site
+use_directory_urls: false
+
+theme:
+  name: material
+  palette:
+    scheme: slate
+    primary: blue
+    accent: orange
+  features:
+    - announce.dismiss
+    - content.code.annotate
+    - content.code.copy
+    - content.code.select
+    - content.footnote.tooltips
+    - content.tabs.link
+    - content.tooltips
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+
+nav:
+  - Home: index.md
+
+markdown_extensions:
+  - markdown.extensions.admonition:
+  - pymdownx.details:
+  - markdown.extensions.toc:
+      permalink: true
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+  - markdown.extensions.footnotes:
+  - markdown.extensions.abbr:
+  - markdown.extensions.def_list:
+  - markdown.extensions.md_in_html:
+  - markdown.extensions.smarty:
+  - markdown.extensions.attr_list:
+  - pymdownx.keys:
+      separator: "＋"
+  - pymdownx.tilde:
+  - pymdownx.caret:
+  - pymdownx.betterem:
+  - pymdownx.mark:
+  - pymdownx.smartsymbols:
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.magiclink:
+  - pymdownx.superfences:
+      # zensical's built-in mermaid support (bundle.js) only auto-mounts <pre class="mermaid">
+      # elements — fence_div_format (<div>) is invisible to it. See zensical.org/docs/authoring/diagrams.
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite:
+
+plugins:
+  - search
