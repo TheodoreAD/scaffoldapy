@@ -1,6 +1,6 @@
 """Renders a representative spread of copier.yml answer combinations and asserts the resulting file
-tree/config is well-formed. A full `uv sync && inv check` run against a generated instance is a
-manual end-to-end check (see README.md), too slow/networked for routine test runs."""
+tree/config is well-formed. A full `uv sync && inv quality.check` run against a generated instance is
+a manual end-to-end check (see README.md), too slow/networked for routine test runs."""
 
 import tomllib
 from pathlib import Path

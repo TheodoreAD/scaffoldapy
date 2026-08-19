@@ -39,10 +39,10 @@ comment already documents for the family at large.
 ## Dev loop
 
 - `uv sync` + `direnv allow` once, then plain `pytest`/`inv` (no `uv run` wrapper needed).
-- `inv precommit` before considering a change done (`Collection.from_module` assigned directly as
-  `ns` puts tasks at the root — no `quality.` prefix here, unlike `power-user-linux-setup`'s own
-  `tasks/__init__.py`, which nests via `add_collection` instead).
+- `inv quality.precommit` before considering a change done — `tasks.py` is `from repo_tasks import
+  ns`, `repo-tasks`' own ready-made root Collection with `quality` (and future modules) already
+  nested under their own names, so no local `add_collection` wiring needed here either.
 - `pytest` — `tests/test_template.py` renders a representative spread of `copier.yml` answer
   combinations into a temp dir and asserts the resulting file tree/config is well-formed.
 - Manual end-to-end check after a real template change: `copier copy . /tmp/scaffold-check --data
-  ...`, then `uv sync && inv check` inside the generated dir — must pass clean out of the box.
+  ...`, then `uv sync && inv quality.check` inside the generated dir — must pass clean out of the box.

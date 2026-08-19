@@ -14,4 +14,4 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync
-      - run: uv run inv check
+      - run: uv run inv quality.check

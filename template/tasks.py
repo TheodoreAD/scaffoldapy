@@ -1,6 +1,5 @@
 """Dogfoods the same quality tasks every template consumer gets — see README.md."""
 
-from invoke import Collection
-from repo_tasks import quality
+from repo_tasks import ns
 
-ns = Collection.from_module(quality)
+__all__ = ["ns"]
