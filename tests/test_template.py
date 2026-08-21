@@ -1,7 +1,10 @@
 """Renders a representative spread of copier.yml answer combinations and asserts the resulting file
-tree/config is well-formed. A full `uv sync && inv quality.check` run against a generated instance is
-a manual end-to-end check (see README.md), too slow/networked for routine test runs."""
+tree/config is well-formed. test_generated_repo_passes_quality_precommit_out_of_the_box is the one
+real end-to-end check — runs _tasks for real (network + uv) and asserts the generated repo's own
+`inv quality.precommit` actually exits 0, not just that its files look right — slower than the rest
+of this suite but still a real pytest test, not a manual step to remember."""
 
+import subprocess
 import tomllib
 from pathlib import Path
 
@@ -62,6 +65,8 @@ def _render(tmp_path: Path, answers: dict[str, object]) -> Path:
         overwrite=True,
         unsafe=False,
         vcs_ref="HEAD",
+        skip_tasks=True,  # _tasks (uv sync, uv run inv configure) needs real network/uv — the
+        # manual end-to-end check (README.md) is what actually exercises it, not a routine test.
     )
     return dst
 
@@ -75,19 +80,12 @@ def test_generates_valid_pyproject_and_config(tmp_path: Path, answers: dict[str,
     parsed = tomllib.loads(pyproject.read_text())
     assert parsed["project"]["name"] == "example-pkg"
 
-    ruff_toml = dst / "ruff.toml"
-    assert ruff_toml.exists()
-    ruff_parsed = tomllib.loads(ruff_toml.read_text())
-    assert ruff_parsed["lint"]["isort"]["known-first-party"] == ["example_pkg"]
-
-    pyright_config = dst / "pyrightconfig.json"
-    # JSONC (basedpyright accepts `//` comments) — not valid strict JSON, just check it's there.
-    assert pyright_config.exists()
-    pyright_text = pyright_config.read_text()
-    assert pyright_text.strip()
-    # include, not exclude — see power-user-linux-setup/repo-tasks's own configs for why.
-    assert '"include": ["src", "tests", "tasks", "tasks.py"]' in pyright_text
-    assert '"exclude"' not in pyright_text
+    # ruff.toml/pyrightconfig.json/dprint.json/pytest.ini/.editorconfig are deliberately NOT
+    # stamped into the template at all — copier.yml's _tasks pulls them from repo-tasks'
+    # canonical copies at generation time (skipped here, see _render's skip_tasks — exercised for
+    # real in test_configure_task_actually_runs below).
+    for name in ("ruff.toml", "pyrightconfig.json", "dprint.json", "pytest.ini", ".editorconfig"):
+        assert not (dst / name).exists()
 
     assert (dst / "README.md").exists()
     assert (dst / "LICENSE").exists()
@@ -179,3 +177,33 @@ def test_with_docs_seeds_docs_site(tmp_path: Path) -> None:
     pyproject = tomllib.loads((dst / "pyproject.toml").read_text())
     assert "zensical" in pyproject["dependency-groups"]["docs"]
     assert "site/" in (dst / ".gitignore").read_text()
+
+
+def test_generated_repo_passes_quality_precommit_out_of_the_box(tmp_path: Path) -> None:
+    """Real end-to-end: renders without skip_tasks (copier.yml's _tasks — `uv sync`, then
+    `uv run inv configure` — actually runs, hitting the network and pulling repo-tasks'
+    canonical configs for real), then runs the generated repo's own `inv quality.precommit` and
+    asserts it genuinely exits 0. `cli-no-fetch`, not `library` — the `library` interface
+    generates no test files at all, which makes pytest itself exit nonzero (no tests collected)
+    for a reason unrelated to what this test checks.
+    """
+    dst = tmp_path / "generated"
+    _ = copier.run_copy(
+        str(TEMPLATE_DIR),
+        str(dst),
+        data={**BASE_ANSWERS, **COMBINATIONS["cli-no-fetch"]},
+        defaults=True,
+        overwrite=True,
+        unsafe=True,
+        vcs_ref="HEAD",
+    )
+    assert (dst / "pyrightconfig.json").exists()  # _tasks ran for real, configs.pull included
+
+    result = subprocess.run(
+        ["uv", "run", "inv", "quality.precommit"],
+        cwd=dst,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr

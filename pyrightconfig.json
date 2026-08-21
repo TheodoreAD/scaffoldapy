@@ -2,7 +2,19 @@
   // "recommended", not "strict" — see power-user-linux-setup's pyrightconfig.json (the origin repo
   // this package was extracted from) for the full profile rationale.
   "typeCheckingMode": "recommended",
-  "exclude": ["**/node_modules", "**/__pycache__", "**/.*"],
+  // `include`, not `exclude`: scopes basedpyright to this project's own code by construction,
+  // instead of an ever-growing "don't check this" blocklist that has to be kept in sync by hand as
+  // new non-source content (docs, generated caches, example snippets, ...) gets added — the
+  // opposite failure mode of an accidentally-too-broad exclude silently un-checking real code.
+  // Confirmed equivalent (0 errors, identical warning count) to the old `exclude: [defaults, ...]`
+  // shape it replaced, both here and in `power-user-linux-setup`'s own config.
+  //
+  // Same fixed list for every consumer's `pyrightconfig.json`, not parameterized per repo:
+  // `src`/`tests` (library layout) + `tasks`/`tasks.py` (a flat-layout repo like
+  // `power-user-linux-setup`, and every consumer's own `tasks.py` entry point) together —
+  // basedpyright silently no-ops on whichever entries don't exist in a given repo, so one shared
+  // list works everywhere with nothing to adjust per consumer.
+  "include": ["tests", "tasks.py"],
   "failOnWarnings": false,
 
   "reportAny": "error",
@@ -24,6 +36,13 @@
 
   "reportMissingTypeArgument": "warning",
   "reportImplicitStringConcatenation": "none",
+
+  // downgrade, not silenced: a package `__init__.py` that imports every submodule to build an
+  // invoke `Collection` (this file's own shape, and any consumer's `tasks/__init__.py` doing the
+  // same) can trip this when a submodule also does `from . import <sibling>` — Python resolves it
+  // fine at runtime, but it's a real, standard invoke-package pattern worth a warning, not an
+  // error. A genuine cycle elsewhere still surfaces.
+  "reportImportCycles": "warning",
 
   // invoke ships no type stubs — every `c: Context` task parameter is Unknown/Any without this.
   "allowedUntypedLibraries": ["invoke"],

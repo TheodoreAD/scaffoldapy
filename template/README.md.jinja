@@ -4,15 +4,18 @@
 
 ## Dev loop
 
-- `uv sync` once, then `inv dev-env.setup` (or `uv run inv dev-env.setup` before direnv has put
-  `.venv/bin` on `PATH`) — wires `direnv allow` and Claude Code's Bash-tool hook so both a shell and
-  an agent auto-activate the venv. Safe to re-run any time, e.g. after a `uv sync` that picks up new
-  dependencies.
+This repo came out of generation already fully set up — `uv sync` and `inv configure` (venv,
+`direnv allow`, the Claude Code Bash-tool hook, and the canonical `ruff.toml`/`pyrightconfig.json`/
+`dprint.json`/`pytest.ini`/`.editorconfig` from [`repo-tasks`](https://github.com/TheodoreAD/repo-tasks))
+already ran automatically at generation time. Day to day:
+
 - `inv quality.precommit` before considering a change done — fixes what's auto-fixable, then runs the
-  full check gate. See [`repo-tasks`](https://github.com/TheodoreAD/repo-tasks) for what each step
-  does, and how new task modules (`docker`, `python_pkg`, ...) show up under their own prefix
-  automatically as `repo-tasks` grows, with no change needed here.
+  full check gate. See `repo-tasks` for what each step does, and how new task modules show up under
+  their own prefix automatically as `repo-tasks` grows, with no change needed here.
 - `pytest` — tests live in `tests/`, fixture-based, no live network calls.
+- `inv configure` again any time — safe to re-run, e.g. after `uv sync` picks up new dependencies, or
+  to re-pull the latest canonical config once `repo-tasks` is bumped
+  (`uv lock --upgrade-package repo-tasks`).
 {% if with_docs -%}
 - `inv docs.build` builds the docs site (zensical, strict mode) to `site/`; `inv docs.serve` runs it
   locally with live reload. `.github/workflows/docs.yml` deploys it to GitHub Pages automatically on

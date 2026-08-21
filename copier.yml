@@ -64,3 +64,13 @@ with_docs:
     good README is usually enough for a small one. WARNING: GitHub Pages sites are public even for
     a private GitHub repo (true as of the last check) — don't enable this if the docs would ever
     contain anything sensitive.
+
+# Exactly two lines, deliberately: `uv sync` is the universal, repo-tasks-independent bootstrap
+# every uv-managed project needs before `inv` exists at all; `uv run inv configure` (not bare
+# `inv` — nothing guarantees a global `inv` on PATH, `invoke` is a per-project venv dependency,
+# same assumption this template's own .github/workflows/ci.yml already makes) is the one stable
+# repo-tasks entrypoint this template depends on. Nothing else about repo-tasks' internals is
+# named here — see contributing/repo-family-architecture.md in power-user-linux-setup.
+_tasks:
+  - "uv sync"
+  - "uv run inv configure"

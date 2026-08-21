@@ -31,18 +31,29 @@ copier update
 Template content lives under `template/` (`_subdirectory: template` in `copier.yml`) — everything
 else at this repo's root (`pyproject.toml`, `tasks.py`, `ruff.toml`, ...) is `scaffoldapy`'s own dev
 tooling, dogfooding `repo-tasks` like every other repo in the family, and is never copied into a
-generated project. A few files are deliberately duplicated in both places with identical content
-(`LICENSE`, `.editorconfig`, `pytest.ini`, `dprint.json`, `tasks.py`, `.gitignore`,
-`.github/workflows/ci.yml`) — kept in sync by hand, same convention `repo-tasks`' own `ruff.toml`
-comment already documents for the family at large.
+generated project. `ruff.toml`/`pyrightconfig.json`/`dprint.json`/`pytest.ini`/`.editorconfig` are
+**not** stamped into the template at all — `copier.yml`'s `_tasks` (`uv sync`, then
+`uv run inv configure`) pulls them from `repo-tasks`' canonical copies automatically right after
+generation, same mechanism every other consumer uses (see
+[`contributing/repo-family-architecture.md`](https://github.com/TheodoreAD/power-user-linux-setup/blob/master/contributing/repo-family-architecture.md)
+in `power-user-linux-setup`). `LICENSE`, `tasks.py`, `.gitignore`, `.github/workflows/ci.yml` are
+still deliberately duplicated in both places with identical content — kept in sync by hand, since
+those aren't `repo-tasks`' concern.
 
 ## Dev loop
 
 - `uv sync` + `direnv allow` once, then plain `pytest`/`inv` (no `uv run` wrapper needed).
-- `inv quality.precommit` before considering a change done — `tasks.py` is `from repo_tasks import
-  ns`, `repo-tasks`' own ready-made root Collection with `quality` (and future modules) already
-  nested under their own names, so no local `add_collection` wiring needed here either.
-- `pytest` — `tests/test_template.py` renders a representative spread of `copier.yml` answer
-  combinations into a temp dir and asserts the resulting file tree/config is well-formed.
-- Manual end-to-end check after a real template change: `copier copy . /tmp/scaffold-check --data
-  ...`, then `uv sync && inv quality.check` inside the generated dir — must pass clean out of the box.
+- `inv quality.precommit` before considering a change done — `tasks.py` is
+  `from repo_tasks import
+  ns`, `repo-tasks`' own ready-made root Collection with `quality` (and
+  future modules) already nested under their own names, so no local `add_collection` wiring needed
+  here either.
+- `pytest` — most of `tests/test_template.py` renders a representative spread of `copier.yml` answer
+  combinations into a temp dir with `skip_tasks=True` (fast, offline — `_tasks` needs real
+  `uv`/network) and asserts the resulting file tree/config is well-formed.
+  `test_generated_repo_passes_quality_precommit_out_of_the_box` is the one real end-to-end check —
+  renders for real (`_tasks` included), then asserts the generated repo's own
+  `inv quality.precommit` genuinely exits 0. Uses the `cli` interface, not `library` — `library`
+  generates zero test files, which makes pytest itself exit nonzero (no tests collected) for a
+  reason unrelated to what that test checks; a real gap in the `library` interface specifically, not
+  yet fixed.
