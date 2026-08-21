@@ -89,6 +89,18 @@ def test_generates_valid_pyproject_and_config(tmp_path: Path, answers: dict[str,
     assert (dst / "LICENSE").exists()
     assert (dst / ".github" / "workflows" / "ci.yml").exists()
 
+    agents_md = dst / "AGENTS.md"
+    assert agents_md.exists()
+    claude_md = dst / "CLAUDE.md"
+    assert claude_md.is_symlink()
+    assert claude_md.resolve() == agents_md.resolve()
+
+    agents_skills = dst / ".agents" / "skills"
+    assert (agents_skills / "README.md").exists()
+    claude_skills = dst / ".claude" / "skills"
+    assert claude_skills.is_symlink()
+    assert claude_skills.resolve() == agents_skills.resolve()
+
 
 def test_mcp_server_seeds_server_entrypoint(tmp_path: Path) -> None:
     dst = _render(tmp_path, COMBINATIONS["mcp_server-http-single-source"])
@@ -135,7 +147,9 @@ def test_library_seeds_nothing_but_the_bare_package(tmp_path: Path) -> None:
     assert (dst / "src" / "example_pkg" / "__init__.py").exists()
     for extra in ("server.py", "cli.py", "app.py", "orchestrator.py", "core", "sources"):
         assert not (dst / "src" / "example_pkg" / extra).exists()
-    assert not (dst / ".agents").exists()
+    # .agents/skills/ itself is unconditional (see test_generates_valid_pyproject_and_config) —
+    # only a shipped skill payload is interface-specific.
+    assert not (dst / ".agents" / "skills" / "example_pkg").exists()
 
 
 def test_with_docs_off_by_default_seeds_no_docs_site(tmp_path: Path) -> None:

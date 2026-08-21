@@ -13,8 +13,6 @@
   does, and how new task modules (`docker`, `python_pkg`, ...) show up under their own prefix
   automatically as `repo-tasks` grows, with no change needed here.
 - `pytest` — tests live in `tests/`, fixture-based, no live network calls.
-- One-time, from a `power-user-linux-setup` checkout: `inv ai.init --dir <this-repo-path>` — generates
-  `AGENTS.md` + the `.claude/skills` symlink. Never overwrites existing content, safe to re-run.
 {% if with_docs -%}
 - `inv docs.build` builds the docs site (zensical, strict mode) to `site/`; `inv docs.serve` runs it
   locally with live reload. `.github/workflows/docs.yml` deploys it to GitHub Pages automatically on

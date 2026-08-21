@@ -1,0 +1,8 @@
+# Skills for {{ package_name }}
+
+Agent skills for this project live here, following the `.agents/skills/` cross-tool convention.
+`.claude/skills` is a symlink to this directory — Claude Code doesn't read `.agents/skills/`
+natively yet, only the symlink target — so a skill placed here is picked up by both.
+
+No skills are installed by default. Add one as a subdirectory here (or symlink one in from
+elsewhere) and it's live for Claude Code immediately, no separate registration step.

@@ -1,4 +1,5 @@
 _subdirectory: template
+_preserve_symlinks: true
 
 package_name:
   type: str
@@ -63,9 +64,3 @@ with_docs:
     good README is usually enough for a small one. WARNING: GitHub Pages sites are public even for
     a private GitHub repo (true as of the last check) — don't enable this if the docs would ever
     contain anything sensitive.
-
-# No _tasks hook for `inv ai.init` here on purpose: it must run with its cwd inside a
-# power-user-linux-setup checkout (invoke's tasks.py discovery walks up from cwd, not an installed
-# copy), which this template has no reliable way to locate on an arbitrary machine. The generated
-# README's dev-loop section documents it as a one-time manual step instead — see mcp-skill-shipping's
-# own documented flow, which already works this way for every existing sibling repo.
