@@ -12,6 +12,17 @@ answer gates a small, independent module of files rather than branching into sep
 trees — a CLI or web service that fetches gets the exact same `core/` polite-fetch primitives an MCP
 server does.
 
+## Scope
+
+This is the "generated once, then hand-maintained per repo, diverging immediately and legitimately"
+piece — project structure, `pyproject.toml`, `AGENTS.md`/`CLAUDE.md`/`.agents/skills`, `mkdocs.yml`.
+Anything a generated repo needs _repeatedly_, identically, forever (quality tooling, venv lifecycle,
+canonical tool config) is [`repo-tasks`](https://github.com/TheodoreAD/repo-tasks)'s job instead —
+pulled in automatically at generation time (`copier.yml`'s `_tasks`: `uv sync`, then
+`uv run inv configure`), not stamped into this template. See
+[`contributing/repo-family-architecture.md`](https://github.com/TheodoreAD/power-user-linux-setup/blob/master/contributing/repo-family-architecture.md)
+in `power-user-linux-setup` for the full three-repo split and the decision rule behind it.
+
 ## Usage
 
 ```shell
