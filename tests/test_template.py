@@ -83,7 +83,11 @@ def test_generates_valid_pyproject_and_config(tmp_path: Path, answers: dict[str,
     pyright_config = dst / "pyrightconfig.json"
     # JSONC (basedpyright accepts `//` comments) — not valid strict JSON, just check it's there.
     assert pyright_config.exists()
-    assert pyright_config.read_text().strip()
+    pyright_text = pyright_config.read_text()
+    assert pyright_text.strip()
+    # include, not exclude — see power-user-linux-setup/repo-tasks's own configs for why.
+    assert '"include": ["src", "tests", "tasks", "tasks.py"]' in pyright_text
+    assert '"exclude"' not in pyright_text
 
     assert (dst / "README.md").exists()
     assert (dst / "LICENSE").exists()

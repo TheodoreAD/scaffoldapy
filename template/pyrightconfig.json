@@ -2,7 +2,13 @@
   // "recommended", not "strict" — see power-user-linux-setup's pyrightconfig.json (the origin repo
   // this package was extracted from) for the full profile rationale.
   "typeCheckingMode": "recommended",
-  "exclude": ["**/node_modules", "**/__pycache__", "**/.*"],
+
+  // `include`, not `exclude`: scopes basedpyright to this project's own code by construction,
+  // instead of an ever-growing "don't check this" blocklist that has to be kept in sync by hand.
+  // Same fixed list as every other repo in the family (power-user-linux-setup, repo-tasks) —
+  // src/tests (library layout) + tasks/tasks.py (a flat-layout repo, and this repo's own tasks.py
+  // entry point) together; basedpyright silently no-ops on whichever entries don't exist here.
+  "include": ["src", "tests", "tasks", "tasks.py"],
   "failOnWarnings": false,
 
   "reportAny": "error",
