@@ -65,12 +65,18 @@ with_docs:
     a private GitHub repo (true as of the last check) — don't enable this if the docs would ever
     contain anything sensitive.
 
-# Exactly two lines, deliberately: `uv sync` is the universal, repo-tasks-independent bootstrap
-# every uv-managed project needs before `inv` exists at all; `uv run inv configure` (not bare
-# `inv` — nothing guarantees a global `inv` on PATH, `invoke` is a per-project venv dependency,
-# same assumption this template's own .github/workflows/ci.yml already makes) is the one stable
-# repo-tasks entrypoint this template depends on. Nothing else about repo-tasks' internals is
-# named here — see contributing/repo-family-architecture.md in power-user-linux-setup.
+# repo-tasks/invoke are deliberately never in this template's own dependency-groups.dev (see
+# pyproject.toml.jinja) — they're a user-wide `uv tool install`, not a per-project dependency
+# (power-user-linux-setup's bootstrap.sh installs it by default), so `inv` and the standalone
+# `repo-tasks` script are both assumed present on PATH here, same as this template's own
+# .github/workflows/ci.yml assumes for its CI runner. `repo-tasks configs.ensure-deps` populates
+# the empty dev group from repo-tasks' own canonical dependency-groups.quality (the template no
+# longer hand-lists those tools — repo-tasks owns that list); `uv lock` then captures a correct,
+# stable initial lock before `inv configure` (bare, not `uv run` — there's no project-level invoke
+# to run it through) does venv creation/direnv/claude-hook/configs-pull/stamp. Nothing else about
+# repo-tasks' internals is named here — see contributing/repo-family-architecture.md in
+# power-user-linux-setup.
 _tasks:
-  - "uv sync"
-  - "uv run inv configure"
+  - "repo-tasks configs.ensure-deps"
+  - "uv lock"
+  - "inv configure"

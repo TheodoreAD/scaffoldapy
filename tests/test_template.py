@@ -4,6 +4,7 @@ real end-to-end check — runs _tasks for real (network + uv) and asserts the ge
 `inv quality.precommit` actually exits 0, not just that its files look right — slower than the rest
 of this suite but still a real pytest test, not a manual step to remember."""
 
+import os
 import subprocess
 import tomllib
 from pathlib import Path
@@ -200,8 +201,18 @@ def test_generated_repo_passes_quality_precommit_out_of_the_box(tmp_path: Path) 
     assert (dst / "pyrightconfig.json").exists()  # _tasks ran for real, configs.pull included
 
     result = subprocess.run(
-        ["uv", "run", "inv", "quality.precommit"],
+        # Bare `inv`, not `uv run inv` -- repo-tasks/invoke are deliberately never project
+        # dependencies of a generated repo (see pyproject.toml.jinja), only the globally
+        # `uv tool install`ed `repo-tasks` on this machine, same assumption copier.yml's own
+        # `_tasks` and the generated .github/workflows/ci.yml both make. `dst/.venv/bin` is
+        # prepended ahead of whatever's already on PATH so the generated repo's own
+        # ruff/pytest/basedpyright/... always win over this test's own dev venv (this suite's own
+        # dependency-groups.dev has no reason to match a given combination's own dependencies --
+        # confirmed live: a bare inherited PATH resolved `pytest` to *this* repo's venv instead of
+        # the generated one, and the generated repo's `typer` dependency was invisible there).
+        ["inv", "quality.precommit"],
         cwd=dst,
+        env={**os.environ, "PATH": f"{dst / '.venv' / 'bin'}:{os.environ['PATH']}"},
         capture_output=True,
         text=True,
         check=False,
