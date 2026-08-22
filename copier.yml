@@ -71,12 +71,14 @@ with_docs:
 # `repo-tasks` script are both assumed present on PATH here, same as this template's own
 # .github/workflows/ci.yml assumes for its CI runner. `repo-tasks configs.ensure-deps` populates
 # the empty dev group from repo-tasks' own canonical dependency-groups.quality (the template no
-# longer hand-lists those tools — repo-tasks owns that list); `uv lock` then captures a correct,
-# stable initial lock before `inv configure` (bare, not `uv run` — there's no project-level invoke
-# to run it through) does venv creation/direnv/claude-hook/configs-pull/stamp. Nothing else about
-# repo-tasks' internals is named here — see contributing/repo-family-architecture.md in
-# power-user-linux-setup.
+# longer hand-lists those tools — repo-tasks owns that list); `inv deps.lock` then captures a
+# correct, stable initial lock before `inv configure` does venv creation/direnv/claude-hook/
+# configs-pull/stamp. All three lines are bare `inv`/`repo-tasks` invocations, never `uv run` or a
+# raw `uv` subcommand — `tasks.py` is already on disk by the time `_tasks` runs (copier renders it
+# along with everything else first), so there's no reason to reach past the task that already wraps
+# `uv lock` once the global `inv` is assumed present anyway. Nothing else about repo-tasks'
+# internals is named here — see contributing/repo-family-architecture.md in power-user-linux-setup.
 _tasks:
   - "repo-tasks configs.ensure-deps"
-  - "uv lock"
+  - "inv deps.lock"
   - "inv configure"
