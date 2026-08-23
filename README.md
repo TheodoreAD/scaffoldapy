@@ -18,8 +18,9 @@ This is the "generated once, then hand-maintained per repo, diverging immediatel
 piece — project structure, `pyproject.toml`, `AGENTS.md`/`CLAUDE.md`/`.agents/skills`, `mkdocs.yml`.
 Anything a generated repo needs _repeatedly_, identically, forever (quality tooling, venv lifecycle,
 canonical tool config) is [`repo-tasks`](https://github.com/TheodoreAD/repo-tasks)'s job instead —
-pulled in automatically at generation time (`copier.yml`'s `_tasks`: `uv sync`, then
-`uv run inv configure`), not stamped into this template. See
+pulled in automatically at generation time (`copier.yml`'s `_tasks`:
+`repo-tasks configs.ensure-deps`, `inv deps.lock`, `inv configure`), not stamped into this template.
+See
 [`contributing/repo-family-architecture.md`](https://github.com/TheodoreAD/power-user-linux-setup/blob/master/contributing/repo-family-architecture.md)
 in `power-user-linux-setup` for the full three-repo split and the decision rule behind it.
 
@@ -43,23 +44,24 @@ Template content lives under `template/` (`_subdirectory: template` in `copier.y
 else at this repo's root (`pyproject.toml`, `tasks.py`, `ruff.toml`, ...) is `scaffoldapy`'s own dev
 tooling, dogfooding `repo-tasks` like every other repo in the family, and is never copied into a
 generated project. `ruff.toml`/`pyrightconfig.json`/`dprint.json`/`pytest.ini`/`.editorconfig` are
-**not** stamped into the template at all — `copier.yml`'s `_tasks` (`uv sync`, then
-`uv run inv configure`) pulls them from `repo-tasks`' canonical copies automatically right after
-generation, same mechanism every other consumer uses (see
+**not** stamped into the template at all — `copier.yml`'s `_tasks` runs `inv configure` right after
+generation, which pulls them from `repo-tasks`' canonical copies, the same mechanism every other
+consumer uses (see
 [`contributing/repo-family-architecture.md`](https://github.com/TheodoreAD/power-user-linux-setup/blob/master/contributing/repo-family-architecture.md)
-in `power-user-linux-setup`). `LICENSE`, `.envrc` and `.github/workflows/ci.yml` are still
-deliberately duplicated in both places byte-for-byte, since those aren't `repo-tasks`' concern —
-`tests/test_repo_sync.py` is what keeps them that way. `.gitignore` is duplicated too, but the
+in `power-user-linux-setup`). `LICENSE`, `.envrc`, `tasks.py` and `.github/workflows/ci.yml` are
+still deliberately duplicated in both places byte-for-byte, since those aren't `repo-tasks`' concern
+— `tests/test_repo_sync.py` is what keeps them that way. `.gitignore` is duplicated too, but the
 template's copy is a superset rather than a match.
 
 ## Dev loop
 
-- `uv sync` + `direnv allow` once, then plain `pytest`/`inv` (no `uv run` wrapper needed).
-- `inv quality.precommit` before considering a change done — `tasks.py` is
-  `from repo_tasks import
-  ns`, `repo-tasks`' own ready-made root Collection with `quality` (and
-  future modules) already nested under their own names, so no local `add_collection` wiring needed
-  here either.
+- Needs the shared `repo-tasks` uv tool on `PATH`, exactly like a generated repo does — neither it
+  nor `invoke` is a dependency here. `power-user-linux-setup`'s `bootstrap.sh` installs it;
+  `./bootstrap-repo-tasks.sh` in this repo does the same thing, and is what CI runs.
+- `inv dev-env.setup` once, then plain `pytest`/`inv` (no `uv run` wrapper needed).
+- `inv quality.precommit` before considering a change done. The whole of `tasks.py` is an import of
+  `repo-tasks`' own ready-made root Collection, which already nests `quality` (and every future
+  module) under its own name — no local `add_collection` wiring needed here either.
 - `pytest` — most of `tests/test_template.py` renders a representative spread of `copier.yml` answer
   combinations into a temp dir with `skip_tasks=True` (fast, offline — `_tasks` needs real
   `uv`/network) and asserts the resulting file tree/config is well-formed.
