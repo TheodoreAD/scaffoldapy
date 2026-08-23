@@ -7,7 +7,7 @@ set -euo pipefail
 # Re-running this script by habit would silently reinstall the global tool to whatever version
 # *this* repo last pinned, yanking it out from under any other repo just being worked on.
 
-command -v uv >/dev/null 2>&1 || {
+command -v uv > /dev/null 2>&1 || {
   echo "uv not found on PATH — install uv first" >&2
   exit 1
 }
