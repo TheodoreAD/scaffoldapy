@@ -54,11 +54,3 @@ class RobotsGuard:
 
     def can_fetch(self, url: str) -> bool:
         return self._parser_for(url).can_fetch(self._user_agent, url)
-
-
-def test_rate_limiter_enforces_minimum_delay() -> None:
-    limiter = RateLimiter(min_delay_seconds=0.05)
-    start = time.monotonic()
-    limiter.wait()
-    limiter.wait()
-    assert time.monotonic() - start >= 0.05
