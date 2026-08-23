@@ -44,3 +44,20 @@ from the template yet, so no repo was stranded.
 ## Verification
 
 Full suite green 2026-08-23 (`inv quality.precommit`: 37 passed, e2e's 10 combinations included).
+
+## Migrated to
+
+Everything durable already lives at its permanent home, written there as the work landed:
+
+- The answers-file mechanism and the dprint-quoting pitfall: the comment inside
+  `template/{{ _copier_conf.answers_file }}.jinja`, plus the docstrings of
+  `test_answers_file_is_dprint_clean_whatever_the_commit_hash` and the answers-file assertions in
+  `test_generates_valid_pyproject_and_config`.
+- The copy-only `_tasks` guards and why updates would otherwise run tasks three times:
+  `copier.yml`'s own comment.
+- The `--trust` requirement and the working update instructions: `README.md`'s Usage section.
+- The untagged-dev-version verification and every `run_update` precondition:
+  `test_copier_update_round_trip`'s docstring.
+
+Deliberately not migrated: the verification log (suite runs green, recorded in the landing commits)
+and the pre-fix failure narrative — both transient by nature.

@@ -75,3 +75,20 @@ holes above were all closable with parametrization. Chosen over a container-back
 runner sees. Deliberately not now (see the DECISION above); revisit if a bug ever slips through that
 the temp-dir tier structurally could not have caught. `repo-tasks`' own `tests/integration/` plus
 `pytest.ini`'s `--ignore` is the shape to copy if it happens.]
+
+## Migrated to
+
+- The crossing-coverage pitfall (item 1) and the long-name/markdown-wrap rule (item 2): already
+  recorded in `AGENTS.md`'s e2e and templated-markdown sections as the fixes landed, plus the
+  in-line comments on the relevant `COMBINATIONS` entries in `tests/conftest.py`.
+- Item 1's Protocol decision: the `Fetcher` docstring in the `sources/base.py` template; item 2's
+  long-name choice: the `COMBINATIONS` comment naming `product_research_pipeline` as the family's
+  longest real name.
+- Item 3 (the update round-trip): `test_copier_update_round_trip` and the now-retired
+  copier-update-is-impossible plan's own migration.
+- The container-tier `[DEFERRED:]` and its paired tmp_path-first `[DECISION:]`:
+  `plans/2026-08-23-container-backed-e2e-tier.md` (status: idea).
+
+Deliberately not migrated: the per-item fix narratives — code contracts and verification logs,
+covered by the tests and landing commits — and the spent naming nuance of item 1 (renaming the http
+fetcher's `get` rather than the browser fetcher's `fetch`), whose outcome is plain in the code.
