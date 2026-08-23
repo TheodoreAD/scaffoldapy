@@ -67,5 +67,6 @@ those aren't `repo-tasks`' concern.
   genuinely exits 0 (deliberately `check`, not `precommit` — `precommit` auto-fixes before checking,
   which would mask real formatting bugs). Parametrized over every interface except `library` —
   `library` generates zero test files, which makes pytest itself exit nonzero (no tests collected)
-  for a reason unrelated to what that test checks; a real gap in the `library` interface
-  specifically, not yet fixed.
+  for a reason unrelated to what that test checks. See
+  [`plans/2026-08-23-library-interface-e2e-coverage.md`](plans/2026-08-23-library-interface-e2e-coverage.md)
+  for closing that gap.
