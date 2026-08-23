@@ -189,7 +189,10 @@ def test_with_docs_seeds_docs_site(tmp_path: Path) -> None:
     mkdocs_yml = dst / "mkdocs.yml"
     assert mkdocs_yml.exists()
     mkdocs_text = mkdocs_yml.read_text()
-    assert "site_name: An example project." in mkdocs_text
+    # site_name is the project, not its one-line description — the description is what
+    # site_description is for.
+    assert "site_name: example-pkg" in mkdocs_text
+    assert "site_description: An example project." in mkdocs_text
     assert "repo_url: https://github.com/TheodoreAD/example-pkg" in mkdocs_text
 
     assert (dst / "docs" / "index.md").exists()

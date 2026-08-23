@@ -1,4 +1,5 @@
-site_name: {{ description }}
+site_name: {{ package_name.replace('_', '-') }}
+site_description: {{ description }}
 site_url: https://{{ github_repo.split('/')[0] }}.github.io/{{ github_repo.split('/')[1] }}
 repo_url: https://github.com/{{ github_repo }}
 repo_name: {{ github_repo }}
