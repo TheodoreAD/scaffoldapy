@@ -33,10 +33,12 @@ copier copy gh:TheodoreAD/scaffoldapy /path/to/new-repo
 or, to pick up template improvements in an already-generated repo later:
 
 ```shell
-copier update
+copier update --trust
 ```
 
-(run from inside the generated repo, which keeps its own `.copier-answers.yml`).
+(run from inside the generated repo, which keeps its own `.copier-answers.yml` — rendered by the
+template itself, as copier requires. `--trust` is needed because the template declares `_tasks`,
+even though those are copy-only and never re-run on update.)
 
 ## Template structure
 
