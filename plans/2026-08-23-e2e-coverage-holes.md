@@ -1,5 +1,5 @@
 ---
-status: idea
+status: blocked on plans/2026-08-23-copier-update-is-impossible.md landing
 updated: 2026-08-23
 ---
 
@@ -8,88 +8,67 @@ updated: 2026-08-23
 `AGENTS.md` already states the rule that matters here: never exclude a combination from the e2e test
 to make it pass, because `test_generated_repo_passes_quality_check_out_of_the_box` is the only test
 that catches template _content_ bugs, and only for combinations it actually runs. A 2026-08-23
-review found three things that rule doesn't yet cover.
+review found three things that rule doesn't yet cover. Items 1 and 2 landed the same day; the whole
+plan now waits on item 3's prerequisite.
 
-### 1. `browser_session` × `multi_source` generates code that cannot import
+### 1. `browser_session` × `multi_source` generated code that couldn't import — FIXED
 
-`sources/base.py` does `from {{ package_name }}.core.fetch import PoliteFetcher` and calls
-`self._fetcher.get(url)`. But `core/fetch.py` renders only when `fetch_strategy == "http"` — with
-`browser_session` the package gets `core/fetch_browser.py`, whose class is `PoliteBrowserFetcher`
-and whose method is `fetch()`, not `get()`.
+`sources/base.py` imported `core.fetch`'s `PoliteFetcher`, which only renders when
+`fetch_strategy == "http"`. Landed as: a structural `Fetcher` protocol defined in `base.py` itself,
+plus a `mcp_server-browser-multi-source` entry in `COMBINATIONS` that failed before the fix and
+passes after.
 
-Confirmed by rendering that combination: no `core/fetch.py` in the tree, while `sources/base.py`
-imports it. `copier.yml` asks `multi_source` whenever `fetch_strategy != 'none'`, so this is a
-combination a real person can pick from the prompts today.
+[DECISION: fixed via a `typing.Protocol` inside `sources/base.py` (method `fetch(url: str) -> str`),
+renaming `PoliteFetcher.get` to `fetch`, rather than a conditional Jinja import of whichever
+concrete fetcher was generated. The protocol removes the cross-conditional import entirely — the
+failure mode becomes structurally impossible instead of merely covered — costs no new seeded file,
+and renaming the http fetcher's `get` (instead of the browser fetcher's `fetch`) avoids implying a
+CDP page render is an HTTP GET. `PoliteBrowserFetcher.fetch` already matched.]
 
-`COMBINATIONS` has `mcp_server-browser-session` with `multi_source: False`, and
-`mcp_server-http-multi-source` with `fetch_strategy: http` — the two axes are each covered, their
-intersection isn't.
+[PITFALL: covering each axis value once is not the same as covering the combinations. Both
+pre-existing entries passed; the bug lived only where they crossed. Now also recorded in AGENTS.md's
+e2e section.]
 
-[PITFALL: covering each axis value once is not the same as covering the combinations. Both existing
-entries pass; the bug lives only where they cross.]
+### 2. Generated markdown wrapping depended on `package_name` length — FIXED
 
-### 2. Generated markdown wrapping depends on `package_name` length
+dprint reflows generated markdown at 100 columns; prose interpolating `{{ package_name }}` mid-line
+was only known dprint-clean for `example_pkg` (11 chars). Landed as: two long-name `COMBINATIONS`
+entries (`mcp_server-browser-session-long-name`, `skill-long-name`) rendering with
+`product_research_pipeline` (25 chars), which caught `README.md.jinja`'s Chrome-session bullet
+exactly as predicted; the bullet's command moved into a fenced code block and the other
+interpolation became "this package". Rule recorded in AGENTS.md ("Keep `{{ package_name }}` out of
+mid-line wrapped prose in templated markdown").
 
-`dprint` reflows markdown at 100 columns, and `quality.check` verifies it. Any template prose
-containing `{{ package_name }}` mid-paragraph is only known to be dprint-clean for the one name the
-tests use — `example_pkg`, 11 characters. A longer package name shifts the wrap and can push the
-rendered file out of dprint-clean shape, failing the generated repo's very first CI run.
+[DECISION: long-name coverage targets the two combinations whose markdown interpolates
+`package_name` into wrapped prose today, not the whole matrix — each e2e entry pays for a real
+`uv sync`, and doubling all of them buys nothing for combinations whose markdown doesn't
+interpolate. The drift risk ("which templates interpolate" changes over time) is carried by the
+AGENTS.md rule plus the crossing lesson above, not by brute-forcing the matrix.]
 
-Known live instance: `README.md.jinja`'s Chrome-session bullet interpolates `{{ package_name }}`
-into `--user-data-dir=~/.cache/{{ package_name }}-chrome` mid-line. The seeded `SKILL.md` had the
-same shape until `28df7e5` restructured it so paths sit on their own lines.
+[DECISION: the long name is `product_research_pipeline` — the family's longest real package name —
+rather than an invented absurd one. It's the principled realistic maximum, and it caught the known
+live instance; an absurd name would also break the rendered artifacts in ways no real generation
+hits.]
 
-This is a whole class of bug, not one instance, and one test parameter closes it.
+Alongside these, the suite's render machinery moved into `tests/conftest.py` — a `render` fixture
+factory (takes the answers dict, `run_tasks` opting into the real `_tasks` render) sandboxed in
+`tmp_path`, a `run_in_generated_repo` helper carrying the PATH-isolation logic, and
+`COMBINATIONS`/`BASE_ANSWERS` as the shared parametrization source — so a new test (or a quick check
+of a suspect combination) is one fixture call, never a throwaway render script.
 
-### 3. The `copier update` round-trip is untested
+### 3. The `copier update` round-trip is untested — REMAINING
 
 Because it's currently impossible — see `plans/2026-08-23-copier-update-is-impossible.md`, which has
-to land first. Once it does, the round-trip test is what stops it regressing.
+to land first. Once it does, the round-trip test (render → `git init` + commit → advance the
+template → `copier update` → assert the change lands) is what stops it regressing. It belongs in
+this suite, on the conftest machinery above.
 
 ## Decisions already taken
 
 [DECISION: harden the existing `tmp_path`-based e2e first, rather than moving generation into a
 container. The temp-dir tests already catch real template bugs and need no new infrastructure; the
-holes above are all closable with parametrization. Chosen over a container-backed tier on
+holes above were all closable with parametrization. Chosen over a container-backed tier on
 2026-08-23.]
-
-## Open questions
-
-- **How to parametrize the long name.** Adding a second `package_name` doubles the e2e matrix, and
-  each entry pays for a real `uv sync` over the network.
-
-  [NEEDS CLARIFICATION: run the long name against every combination, or pick the one or two
-  combinations whose templates actually interpolate `package_name` into wrapped prose (the
-  `browser_session` README, the `skill` SKILL.md) and cover it there only? The second keeps the
-  matrix affordable but relies on knowing which templates interpolate — which drifts.]
-
-- **How long is long enough.** The wrap only breaks past some threshold that depends on the
-  surrounding sentence.
-
-  [NEEDS CLARIFICATION: is there a principled maximum (a real package name from the family, e.g.
-  `product_research_pipeline` at 25 characters), or should the test use a deliberately absurd name
-  to catch the whole class?]
-
-- **How to fix the `browser_session` × `multi_source` crossing.** Two shapes, not obviously equal.
-
-  [NEEDS CLARIFICATION: give both fetchers a common `get()` method so `sources/base.py` works
-  against either (smallest diff, but renames `PoliteBrowserFetcher.fetch` and slightly obscures that
-  a CDP fetch is not an HTTP GET), or introduce a small `Fetcher` protocol in `core/` that both
-  implement and `base.py` depends on (more explicit, more files in a template that deliberately
-  seeds few)?]
-
-## Recommended direction
-
-In order, since each step's failure teaches something about the next:
-
-1. Add the `browser_session` × `multi_source` entry to `COMBINATIONS` and watch it fail — that
-   failure is the specification for the fix.
-2. Fix the template, per whichever shape the open question above resolves to.
-3. Add the long-`package_name` case, fix whatever wrapping it breaks, and record the rule that
-   avoids the class: keep code spans and paths out of the middle of wrapped prose in any templated
-   markdown.
-4. After `plans/2026-08-23-copier-update-is-impossible.md` lands, add the render → `git init` →
-   advance template → `copier update` round-trip.
 
 [DEFERRED: a container-backed e2e tier, so generation no longer depends on this machine's global
 `repo-tasks` install, `direnv`, or an inherited `PATH` — closer to what a generated repo's real CI
