@@ -1,5 +1,5 @@
 ---
-status: idea
+status: landed
 updated: 2026-08-23
 ---
 
@@ -39,3 +39,19 @@ inside the `async with semaphore:` block instead of combining both in one `async
 
 Not yet scoped or fixed — pick one, fix it, verify against a fresh `copier copy` + real
 `inv quality.check` run (not just template inspection), same way the dependency/CI work was verified.
+
+## Resolution
+
+Both fixed 2026-08-23. Bug 2: `orchestrator.py.jinja`'s `_bounded_query` now nests a plain
+`with contextlib.suppress(...)` inside `async with semaphore:` instead of combining both in one
+`async with`. Bug 1: reflowed `README.md.jinja` and `SKILL.md.jinja` prose to match dprint's
+markdown wrapping (`textWrap: always`, 100-col) — derived by running `dprint fmt` against real
+rendered output and translating the wrap points back through the jinja placeholders. Verified with
+fresh `copier copy` renders across all six `interface` combinations (`dprint check` on the rendered
+markdown, real `pytest` run, and a full `inv quality.check` on a generated `skill`-interface
+project) plus the existing repo test suite (17 passed).
+
+## Migrated to
+
+Nothing — pure code changes, self-explanatory from the diff/commit history. No docs/contributing
+content needed.
