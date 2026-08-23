@@ -65,7 +65,7 @@ those aren't `repo-tasks`' concern.
   `test_generated_repo_passes_quality_check_out_of_the_box` is the one real end-to-end check —
   renders for real (`_tasks` included), then asserts the generated repo's own `inv quality.check`
   genuinely exits 0 (deliberately `check`, not `precommit` — `precommit` auto-fixes before checking,
-  which would mask real formatting bugs). Uses the `cli` interface, not `library` — `library`
-  generates zero test files, which makes pytest itself exit nonzero (no tests collected) for a
-  reason unrelated to what that test checks; a real gap in the `library` interface specifically, not
-  yet fixed.
+  which would mask real formatting bugs). Parametrized over every interface except `library` —
+  `library` generates zero test files, which makes pytest itself exit nonzero (no tests collected)
+  for a reason unrelated to what that test checks; a real gap in the `library` interface
+  specifically, not yet fixed.
