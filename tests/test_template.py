@@ -1,7 +1,7 @@
 """Renders a representative spread of copier.yml answer combinations and asserts the resulting file
-tree/config is well-formed. test_generated_repo_passes_quality_precommit_out_of_the_box is the one
+tree/config is well-formed. test_generated_repo_passes_quality_check_out_of_the_box is the one
 real end-to-end check — runs _tasks for real (network + uv) and asserts the generated repo's own
-`inv quality.precommit` actually exits 0, not just that its files look right — slower than the rest
+`inv quality.check` actually exits 0, not just that its files look right — slower than the rest
 of this suite but still a real pytest test, not a manual step to remember."""
 
 import os
@@ -180,13 +180,20 @@ def test_with_docs_seeds_docs_site(tmp_path: Path) -> None:
     assert "site/" in (dst / ".gitignore").read_text()
 
 
-def test_generated_repo_passes_quality_precommit_out_of_the_box(tmp_path: Path) -> None:
+def test_generated_repo_passes_quality_check_out_of_the_box(tmp_path: Path) -> None:
     """Real end-to-end: renders without skip_tasks (copier.yml's _tasks — `uv sync`, then
     `uv run inv configure` — actually runs, hitting the network and pulling repo-tasks'
-    canonical configs for real), then runs the generated repo's own `inv quality.precommit` and
+    canonical configs for real), then runs the generated repo's own `inv quality.check` and
     asserts it genuinely exits 0. `cli-no-fetch`, not `library` — the `library` interface
     generates no test files at all, which makes pytest itself exit nonzero (no tests collected)
     for a reason unrelated to what this test checks.
+
+    Deliberately `quality.check`, not `quality.precommit` — the generated repo's actual CI
+    (`.github/workflows/ci.yml`) runs check-only, with no auto-fix step first. `precommit` runs
+    `fix` (ruff format, dprint fmt, ...) before checking, which would silently mask exactly the
+    kind of formatting bug this test exists to catch (confirmed live 2026-08-23: a dprint
+    markdown-wrapping bug in the generated README.md/SKILL.md passed a `precommit`-based version
+    of this test while failing every generated repo's real CI).
     """
     dst = tmp_path / "generated"
     _ = copier.run_copy(
@@ -210,7 +217,7 @@ def test_generated_repo_passes_quality_precommit_out_of_the_box(tmp_path: Path) 
         # dependency-groups.dev has no reason to match a given combination's own dependencies --
         # confirmed live: a bare inherited PATH resolved `pytest` to *this* repo's venv instead of
         # the generated one, and the generated repo's `typer` dependency was invisible there).
-        ["inv", "quality.precommit"],
+        ["inv", "quality.check"],
         cwd=dst,
         env={**os.environ, "PATH": f"{dst / '.venv' / 'bin'}:{os.environ['PATH']}"},
         capture_output=True,
