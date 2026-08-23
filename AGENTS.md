@@ -6,7 +6,10 @@ repeat them here, only what's specific to this repo.
 
 ## Build & test
 
-- `uv sync` + `direnv allow` once after cloning, then plain `pytest`/`inv` — no `uv run` prefix.
+- Needs the shared `repo-tasks` uv tool on `PATH` — `power-user-linux-setup`'s `bootstrap.sh`
+  installs it, and `./bootstrap-repo-tasks.sh` here does the same thing (it's what CI runs). Neither
+  `repo-tasks` nor `invoke` is a dependency of this repo, same as every repo it generates.
+- `inv dev-env.setup` once after cloning, then plain `pytest`/`inv` — no `uv run` prefix.
 - `inv quality.precommit` before considering a change done.
 - `pytest` — the whole suite is `tests/test_template.py`, and it runs in ~40s. Don't reach for a
   throwaway render script to check template output; the suite already renders every combination.
@@ -18,12 +21,12 @@ Everything at this repo's root — `pyproject.toml`, `tasks.py`, `ruff.toml`, `t
 `scaffoldapy`'s _own_ dev tooling and is never copied anywhere. Editing the root copy when the
 template copy was meant is the easiest mistake to make here.
 
-Some files deliberately exist in both places. `LICENSE`, `.envrc` and `.github/workflows/ci.yml` are
-byte-identical, and `tests/test_repo_sync.py` fails if they ever stop being — hand-syncing is not a
-plan on its own, which is how `ci.yml` sat on the pre-`repo-tasks` CI recipe at the root while the
-template's copy had moved on. `.gitignore` is the deliberate exception: the template's copy is a
-superset (a generated repo can have `site/` and `.cache/`; this one can't), so the guard checks
-containment rather than equality.
+Some files deliberately exist in both places. `LICENSE`, `.envrc`, `tasks.py` and
+`.github/workflows/ci.yml` are byte-identical, and `tests/test_repo_sync.py` fails if they ever stop
+being — hand-syncing is not a plan on its own, which is how `ci.yml` sat on the pre-`repo-tasks` CI
+recipe at the root while the template's copy had moved on. `.gitignore` is the deliberate exception:
+the template's copy is a superset (a generated repo can have `site/` and `.cache/`; this one can't),
+so the guard checks containment rather than equality.
 
 Others deliberately exist only at the root and must **not** be added to `template/` — `ruff.toml`,
 `pyrightconfig.json`, `dprint.json`, `pytest.ini`, `.editorconfig` are pulled from `repo-tasks`'

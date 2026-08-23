@@ -5,12 +5,15 @@ requires-python = ">=3.11"
 dependencies = []
 
 [dependency-groups]
+# copier is this repo's own subject matter (tests/test_template.py renders with it) — everything
+# else here is repo-tasks' canonical dependency-groups.quality, put in place by
+# `repo-tasks configs.ensure-deps` rather than hand-listed. repo-tasks and invoke are deliberately
+# absent: they're the global `uv tool install` daily driver, same assumption this repo's own CI,
+# copier.yml's _tasks, and every generated repo make.
 dev = [
-  "basedpyright>=1.39.10",
   "copier",
-  "invoke",
+  "basedpyright>=1.39.10",
   "pytest",
-  "repo-tasks",
   "ruff",
   "shellcheck-py",
   "shfmt-py",
@@ -19,6 +22,3 @@ dev = [
 
 [tool.uv]
 package = false
-
-[tool.uv.sources]
-repo-tasks = { git = "https://github.com/TheodoreAD/repo-tasks" }
