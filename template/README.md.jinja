@@ -84,8 +84,12 @@ uv add git+https://github.com/{{ github_repo }}
 This project drives an already-running, already-logged-in Chrome instance over CDP rather than
 launching its own — attach, never launch, so the login session is a human's, not a throwaway one:
 
-1. Start Chrome with remote debugging enabled and a dedicated profile, e.g.
-   `google-chrome --remote-debugging-port=9333 --user-data-dir=~/.cache/{{ package_name }}-chrome`.
+1. Start Chrome with remote debugging enabled and a dedicated profile:
+
+   ```shell
+   google-chrome --remote-debugging-port=9333 --user-data-dir=~/.cache/{{ package_name }}-chrome
+   ```
+
 2. Log in manually, once, in that Chrome window.
-3. Leave it running — `{{ package_name }}` connects to it via `connect_over_cdp`, never `.launch()`.
+3. Leave it running — this package connects to it via `connect_over_cdp`, never `.launch()`.
 {% endif -%}

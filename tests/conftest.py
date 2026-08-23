@@ -63,6 +63,24 @@ COMBINATIONS: dict[str, dict[str, object]] = {
     "library": {
         "interface": "library",
     },
+    # package_name length moves where dprint's 100-column reflow wraps any templated markdown prose
+    # that interpolates it — example_pkg (11 chars) passing proves nothing about a longer name.
+    # These two combinations are the ones whose markdown interpolates package_name into wrapped
+    # prose today (the browser-session README, the skill SKILL.md); the name is the family's
+    # longest real one, not an invented worst case.
+    "mcp_server-browser-session-long-name": {
+        "interface": "mcp_server",
+        "fetch_strategy": "browser_session",
+        "multi_source": False,
+        "source_key": "temu",
+        "package_name": "product_research_pipeline",
+        "github_repo": "TheodoreAD/product-research-pipeline",
+    },
+    "skill-long-name": {
+        "interface": "skill",
+        "package_name": "product_research_pipeline",
+        "github_repo": "TheodoreAD/product-research-pipeline",
+    },
 }
 
 

@@ -56,6 +56,15 @@ axis value once is not the same as covering their crossings — `browser_session
 were each green on their own while their intersection generated code that couldn't import
 (2026-08-23); when two axes' template files reference each other, add the crossing entry too.
 
+## Keep `{{ package_name }}` out of mid-line wrapped prose in templated markdown
+
+dprint reflows generated markdown at 100 columns and a generated repo's `quality.check` enforces it,
+so template prose that interpolates `{{ package_name }}` mid-paragraph is only dprint-clean near the
+name length it was written against — a longer name shifts the wrap and fails the generated repo's
+first CI run. Put an interpolated path/command on its own line (a fenced code block), or drop the
+interpolation where prose works without it ("this package"). The `*-long-name` `COMBINATIONS`
+entries render with the family's longest real package name to catch this class.
+
 ## Plans
 
 Work-in-progress designs and ideas live in `plans/YYYY-MM-DD-topic.md` — see the `plan-docs` skill
