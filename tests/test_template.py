@@ -155,6 +155,15 @@ def test_library_seeds_nothing_but_the_bare_package(tmp_path: Path) -> None:
     assert not (dst / ".agents" / "skills" / "example_pkg").exists()
 
 
+def test_library_seeds_a_smoke_test(tmp_path: Path) -> None:
+    """Every other interface seeds a test for its own entrypoint; a library has none to exercise,
+    so it gets an import smoke test instead. Not boilerplate for its own sake — it's the seed of a
+    working test suite, and without it `pytest` exits nonzero (no tests collected) in a freshly
+    generated library repo, i.e. `inv quality.check` fails out of the box."""
+    dst = _render(tmp_path, COMBINATIONS["library"])
+    assert (dst / "tests" / "test_example_pkg.py").exists()
+
+
 def test_with_docs_off_by_default_seeds_no_docs_site(tmp_path: Path) -> None:
     dst = _render(tmp_path, COMBINATIONS["library"])
     assert not (dst / "mkdocs.yml").exists()
