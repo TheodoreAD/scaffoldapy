@@ -148,7 +148,10 @@ def test_browser_session_seeds_fetch_browser_not_http_fetch(tmp_path: Path) -> N
 
 def test_skill_seeds_agent_skill_dir_and_orchestrator(tmp_path: Path) -> None:
     dst = _render(tmp_path, COMBINATIONS["skill"])
-    assert (dst / ".agents" / "skills" / "example_pkg" / "SKILL.md").exists()
+    # Kebab-case, matching the SKILL.md `name:` field and every skill in the family — the
+    # directory name is the skill's identity to Claude Code, so a snake_case package_name must
+    # not leak into it.
+    assert (dst / ".agents" / "skills" / "example-pkg" / "SKILL.md").exists()
     assert (dst / "src" / "example_pkg" / "orchestrator.py").exists()
     assert not (dst / "src" / "example_pkg" / "core").exists()
 
@@ -160,7 +163,7 @@ def test_library_seeds_nothing_but_the_bare_package(tmp_path: Path) -> None:
         assert not (dst / "src" / "example_pkg" / extra).exists()
     # .agents/skills/ itself is unconditional (see test_generates_valid_pyproject_and_config) —
     # only a shipped skill payload is interface-specific.
-    assert not (dst / ".agents" / "skills" / "example_pkg").exists()
+    assert not (dst / ".agents" / "skills" / "example-pkg").exists()
 
 
 def test_library_seeds_a_smoke_test(tmp_path: Path) -> None:
