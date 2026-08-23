@@ -1,31 +1,27 @@
+{#- Collected up front rather than emitted by a chain of inline {%- if -%} blocks: the `library`
+    interface takes none of them, and dprint formats an empty array as `[]`, not as `[` + `]` on two
+    lines -- a shape the inline form can't express without the whitespace control fighting itself. -#}
+{%- set deps = (
+  (["fastmcp"] if interface in ("mcp_server", "skill") else [])
+  + (["typer"] if interface == "cli" else [])
+  + (["fastapi", "uvicorn[standard]"] if interface == "web_service" else [])
+  + (["httpx", "tenacity", "diskcache"] if fetch_strategy | default("none") == "http" else [])
+  + (["playwright"] if fetch_strategy | default("none") == "browser_session" else [])
+) -%}
 [project]
 name = "{{ package_name | replace('_', '-') }}"
 version = "0.1.0"
 description = "{{ description }}"
 requires-python = ">=3.11"
+{% if deps -%}
 dependencies = [
-{%- if interface == "mcp_server" %}
-  "fastmcp",
-{%- endif -%}
-{%- if interface == "cli" %}
-  "typer",
-{%- endif -%}
-{%- if interface == "web_service" %}
-  "fastapi",
-  "uvicorn[standard]",
-{%- endif -%}
-{%- if interface == "skill" %}
-  "fastmcp",
-{%- endif -%}
-{%- if fetch_strategy is defined and fetch_strategy == "http" %}
-  "httpx",
-  "tenacity",
-  "diskcache",
-{%- endif -%}
-{%- if fetch_strategy is defined and fetch_strategy == "browser_session" %}
-  "playwright",
-{%- endif %}
+{%- for dep in deps %}
+  "{{ dep }}",
+{%- endfor %}
 ]
+{%- else -%}
+dependencies = []
+{%- endif %}
 
 {% if interface == "mcp_server" -%}
 [project.scripts]
