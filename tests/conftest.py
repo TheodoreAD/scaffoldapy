@@ -40,6 +40,15 @@ COMBINATIONS: dict[str, dict[str, object]] = {
         "multi_source": False,
         "source_key": "temu",
     },
+    # Covering each axis value once is not the same as covering their crossings: browser_session
+    # and multi_source were each green above while their intersection generated code that couldn't
+    # import (sources/base.py hardcoded the http fetcher, 2026-08-23).
+    "mcp_server-browser-multi-source": {
+        "interface": "mcp_server",
+        "fetch_strategy": "browser_session",
+        "multi_source": True,
+        "source_key": "temu",
+    },
     "cli-no-fetch": {
         "interface": "cli",
         "fetch_strategy": "none",

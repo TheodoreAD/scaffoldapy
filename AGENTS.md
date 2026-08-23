@@ -51,7 +51,10 @@ the template. Confirmed twice: the `skill` interface's `orchestrator.py` bug sur
 was excluded — each surfaced the moment its combination was added back.
 
 Adding a new `interface` choice therefore means adding a `COMBINATIONS` entry _and_ seeding at least
-one test file for it, so `pytest` inside the generated repo has something to collect.
+one test file for it, so `pytest` inside the generated repo has something to collect. Covering each
+axis value once is not the same as covering their crossings — `browser_session` and `multi_source`
+were each green on their own while their intersection generated code that couldn't import
+(2026-08-23); when two axes' template files reference each other, add the crossing entry too.
 
 ## Plans
 

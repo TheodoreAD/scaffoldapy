@@ -45,15 +45,18 @@ class PoliteFetcher:
         stop=stop_after_attempt(3),
         reraise=True,
     )
-    def get(self, path: str) -> str:
-        full_url = str(httpx.URL(self._client.base_url).join(path))
+    def fetch(self, url: str) -> str:
+        """`url` may be absolute or a path relative to base_url — httpx's join handles both.
+        Named `fetch`, not `get`, to satisfy sources/base.py's `Fetcher` protocol alongside the
+        browser-session fetcher when both a fetch layer and multi_source are generated."""
+        full_url = str(httpx.URL(self._client.base_url).join(url))
         if not self._robots_guard.can_fetch(full_url):
             raise PermissionError(f"robots.txt disallows fetching {full_url}")
         cached = self._cache.get(full_url)
         if cached is not None:
             return cached
         self._rate_limiter.wait()
-        response = self._client.get(path)
+        response = self._client.get(url)
         _ = response.raise_for_status()
         self._cache.set(full_url, response.text)
         return response.text

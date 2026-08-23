@@ -3,24 +3,33 @@ subclasses this and fills in the three abstract hooks; `search()`/`fetch_detail(
 once here and shared by every source."""
 
 from abc import ABC, abstractmethod
+from typing import Protocol
 
-from {{ package_name }}.core.fetch import PoliteFetcher
 from {{ package_name }}.models import Result
 
 
-class SourceAdapter(ABC):
-    _fetcher: PoliteFetcher
+class Fetcher(Protocol):
+    """What a source adapter needs from a fetcher — satisfied structurally by whichever concrete
+    fetcher this repo generated with (core.fetch.PoliteFetcher or
+    core.fetch_browser.PoliteBrowserFetcher), so this module never imports a module that only
+    exists for one fetch strategy."""
 
-    def __init__(self, fetcher: PoliteFetcher) -> None:
+    def fetch(self, url: str) -> str: ...
+
+
+class SourceAdapter(ABC):
+    _fetcher: Fetcher
+
+    def __init__(self, fetcher: Fetcher) -> None:
         self._fetcher = fetcher
 
     def search(self, query: str) -> list[Result]:
         url = self._build_query(query)
-        html = self._fetcher.get(url)
+        html = self._fetcher.fetch(url)
         return self._parse_results(html)
 
     def fetch_detail(self, url: str) -> Result:
-        html = self._fetcher.get(url)
+        html = self._fetcher.fetch(url)
         return self._parse_detail(html, url=url)
 
     @abstractmethod
