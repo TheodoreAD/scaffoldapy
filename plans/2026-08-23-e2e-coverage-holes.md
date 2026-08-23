@@ -1,5 +1,5 @@
 ---
-status: blocked on plans/2026-08-23-copier-update-is-impossible.md landing
+status: landed
 updated: 2026-08-23
 ---
 
@@ -8,8 +8,7 @@ updated: 2026-08-23
 `AGENTS.md` already states the rule that matters here: never exclude a combination from the e2e test
 to make it pass, because `test_generated_repo_passes_quality_check_out_of_the_box` is the only test
 that catches template _content_ bugs, and only for combinations it actually runs. A 2026-08-23
-review found three things that rule doesn't yet cover. Items 1 and 2 landed the same day; the whole
-plan now waits on item 3's prerequisite.
+review found three things that rule doesn't yet cover. All three landed the same day.
 
 ### 1. `browser_session` × `multi_source` generated code that couldn't import — FIXED
 
@@ -56,12 +55,13 @@ factory (takes the answers dict, `run_tasks` opting into the real `_tasks` rende
 `COMBINATIONS`/`BASE_ANSWERS` as the shared parametrization source — so a new test (or a quick check
 of a suspect combination) is one fixture call, never a throwaway render script.
 
-### 3. The `copier update` round-trip is untested — REMAINING
+### 3. The `copier update` round-trip is untested — FIXED
 
-Because it's currently impossible — see `plans/2026-08-23-copier-update-is-impossible.md`, which has
-to land first. Once it does, the round-trip test (render → `git init` + commit → advance the
-template → `copier update` → assert the change lands) is what stops it regressing. It belongs in
-this suite, on the conftest machinery above.
+It was untestable because updating was impossible — the template never rendered
+`.copier-answers.yml`. That landed via `plans/2026-08-23-copier-update-is-impossible.md`, together
+with the round-trip test itself (`test_copier_update_round_trip`: render from a committed tmp copy
+of the template → advance it → `copier update` → assert the change lands), which is what stops it
+regressing.
 
 ## Decisions already taken
 
