@@ -78,7 +78,17 @@ with_docs:
 # along with everything else first), so there's no reason to reach past the task that already wraps
 # `uv lock` once the global `inv` is assumed present anyway. Nothing else about repo-tasks'
 # internals is named here — see contributing/repo-family-architecture.md in power-user-linux-setup.
+#
+# The `when` guards make these copy-only: `copier update` re-renders the template three times (old
+# version and new version into temp dirs, plus the real destination) with `_copier_operation` set
+# to "update" throughout, so unguarded tasks would run in all three — hitting the network to build
+# venvs in throwaway temp dirs, and skewing the computed update diff with uv.lock/config churn the
+# template never rendered. After an update, re-locking/re-pulling is the generated repo's own
+# `inv deps.lock`/`inv configure`, run deliberately, not a generation side effect.
 _tasks:
-  - "repo-tasks configs.ensure-deps"
-  - "inv deps.lock"
-  - "inv configure"
+  - command: "repo-tasks configs.ensure-deps"
+    when: "{{ _copier_operation == 'copy' }}"
+  - command: "inv deps.lock"
+    when: "{{ _copier_operation == 'copy' }}"
+  - command: "inv configure"
+    when: "{{ _copier_operation == 'copy' }}"

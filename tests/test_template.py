@@ -4,10 +4,23 @@ real end-to-end check — runs _tasks for real (network + uv) and asserts the ge
 `inv quality.check` actually exits 0, not just that its files look right — slower than the rest
 of this suite but still a real pytest test, not a manual step to remember."""
 
+import shutil
+import subprocess
 import tomllib
+from pathlib import Path
+from typing import cast
 
+import copier
 import pytest
-from conftest import COMBINATIONS, Render, package_name_of, run_in_generated_repo
+import yaml
+from conftest import (
+    BASE_ANSWERS,
+    COMBINATIONS,
+    TEMPLATE_DIR,
+    Render,
+    package_name_of,
+    run_in_generated_repo,
+)
 
 
 @pytest.mark.parametrize("answers", COMBINATIONS.values(), ids=COMBINATIONS.keys())
@@ -38,6 +51,17 @@ def test_generates_valid_pyproject_and_config(render: Render, answers: dict[str,
     # core/cache.py's ResponseCache writes under .cache/<package_name> by default, so a generated
     # repo that fetches would otherwise offer its own disk cache up for committing.
     assert ".cache/" in (dst / ".gitignore").read_text()
+
+    # Without a rendered answers file `copier update` cannot run at all — copier never writes it
+    # on its own, the template has to render it (confirmed against copier 9.17.1, whose
+    # `run_update` raises when it's absent). It must also record the answers actually used, or an
+    # update would replay the wrong ones.
+    answers_file = dst / ".copier-answers.yml"
+    assert answers_file.exists()
+    recorded = cast("dict[str, object]", yaml.safe_load(answers_file.read_text()))
+    assert recorded["_commit"]
+    assert recorded["_src_path"]
+    assert recorded["package_name"] == pkg
 
     agents_md = dst / "AGENTS.md"
     assert agents_md.exists()
@@ -140,6 +164,92 @@ def test_with_docs_seeds_docs_site(render: Render) -> None:
     pyproject = tomllib.loads((dst / "pyproject.toml").read_text())
     assert "zensical" in pyproject["dependency-groups"]["docs"]
     assert "site/" in (dst / ".gitignore").read_text()
+
+
+def _git(cwd: Path, *args: str) -> None:
+    _ = subprocess.run(
+        ["git", "-c", "user.name=test", "-c", "user.email=test@example.com", *args],
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+    )
+
+
+def test_copier_update_round_trip(tmp_path: Path) -> None:
+    """Render → commit → advance the template → `copier update` actually lands the change.
+
+    This is the only test that proves updating is possible at all: the answers file, every
+    `run_update` precondition (git-tracked clean subproject, git-tracked template, a detectable
+    version on both sides), and the diff application have to work together. The template side is a
+    committed copy in tmp_path — never this repo's real working tree — and it's left untagged like
+    the real repo, so this also proves the update survives two dunamai dev versions
+    (0.0.0.postN.dev0+hash) on either side of copier's downgrade guard.
+
+    unsafe=True mirrors the real invocation: a template with `_tasks` needs `copier update --trust`
+    even though the tasks themselves are copy-only (guarded by `_copier_operation` in copier.yml).
+    """
+    template_repo = tmp_path / "template_repo"
+    template_repo.mkdir()
+    _ = shutil.copy(TEMPLATE_DIR / "copier.yml", template_repo)
+    _ = shutil.copytree(TEMPLATE_DIR / "template", template_repo / "template", symlinks=True)
+    _git(template_repo, "init")
+    _git(template_repo, "add", "-A")
+    _git(template_repo, "commit", "-m", "template v1")
+
+    dst = tmp_path / "generated"
+    _ = copier.run_copy(
+        str(template_repo),
+        str(dst),
+        data={**BASE_ANSWERS, **COMBINATIONS["cli-no-fetch"]},
+        defaults=True,
+        overwrite=True,
+        skip_tasks=True,
+    )
+    _git(dst, "init")
+    _git(dst, "add", "-A")
+    _git(dst, "commit", "-m", "generated")
+    answers_before = cast("dict[str, object]", yaml.safe_load((dst / ".copier-answers.yml").read_text()))
+    commit_before = answers_before["_commit"]
+
+    marker = "A line only the advanced template contains."
+    agents_md = template_repo / "template" / "AGENTS.md"
+    _ = agents_md.write_text(agents_md.read_text() + f"\n{marker}\n")
+    _git(template_repo, "commit", "-am", "template v2")
+
+    _ = copier.run_update(
+        str(dst),
+        defaults=True,
+        overwrite=True,
+        skip_tasks=True,
+        unsafe=True,
+    )
+
+    assert marker in (dst / "AGENTS.md").read_text()
+    recorded = cast("dict[str, object]", yaml.safe_load((dst / ".copier-answers.yml").read_text()))
+    assert recorded["_commit"] != commit_before  # the answers file moved with the update
+
+
+def test_answers_file_is_dprint_clean_whatever_the_commit_hash(render: Render) -> None:
+    """The stock `to_nice_yaml` answers-file idiom single-quotes any value pyyaml decides needs
+    quoting — e.g. an all-digit `_commit` short hash — and the canonical dprint YAML config every
+    generated repo pulls enforces double quotes, failing the generated repo's quality gate.
+    Whether the e2e test catches that depends on the luck of this repo's current short hash
+    (confirmed live 2026-08-23 on hash 4276235), so check the rendered answers file against the
+    same canonical dprint config directly."""
+    dst = render(COMBINATIONS["library"])
+    result = subprocess.run(
+        [
+            "dprint",
+            "check",
+            "--config",
+            str(TEMPLATE_DIR / "dprint.json"),
+            str(dst / ".copier-answers.yml"),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 @pytest.mark.parametrize("combo_name", COMBINATIONS)

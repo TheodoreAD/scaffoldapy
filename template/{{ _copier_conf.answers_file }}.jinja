@@ -1,0 +1,10 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+{#- Not the stock `_copier_answers|to_nice_yaml` idiom: pyyaml single-quotes any value that needs
+    quoting (e.g. an all-digit `_commit` short hash), and the dprint config every generated repo
+    pulls from repo-tasks enforces double quotes on YAML — so the stock idiom fails a generated
+    repo's own `quality.check` whenever the template's commit hash happens to look numeric.
+    JSON-encoding each scalar (a valid YAML subset) keeps the file dprint-clean regardless of
+    content: strings always double-quoted, booleans plain `true`/`false`. -#}
+{% for key, value in _copier_answers | dictsort %}
+{{ key }}: {{ value | to_json }}
+{% endfor -%}
