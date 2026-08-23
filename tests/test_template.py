@@ -4,87 +4,26 @@ real end-to-end check — runs _tasks for real (network + uv) and asserts the ge
 `inv quality.check` actually exits 0, not just that its files look right — slower than the rest
 of this suite but still a real pytest test, not a manual step to remember."""
 
-import os
-import subprocess
 import tomllib
-from pathlib import Path
 
-import copier
 import pytest
-
-TEMPLATE_DIR = Path(__file__).parent.parent
-
-BASE_ANSWERS: dict[str, object] = {
-    "package_name": "example_pkg",
-    "description": "An example project.",
-    "github_repo": "TheodoreAD/example-pkg",
-}
-
-COMBINATIONS: dict[str, dict[str, object]] = {
-    "mcp_server-http-single-source": {
-        "interface": "mcp_server",
-        "fetch_strategy": "http",
-        "multi_source": False,
-        "source_key": "olx",
-    },
-    "mcp_server-http-multi-source": {
-        "interface": "mcp_server",
-        "fetch_strategy": "http",
-        "multi_source": True,
-        "source_key": "olx",
-    },
-    "mcp_server-browser-session": {
-        "interface": "mcp_server",
-        "fetch_strategy": "browser_session",
-        "multi_source": False,
-        "source_key": "temu",
-    },
-    "cli-no-fetch": {
-        "interface": "cli",
-        "fetch_strategy": "none",
-    },
-    "web_service-no-fetch": {
-        "interface": "web_service",
-        "fetch_strategy": "none",
-    },
-    "skill": {
-        "interface": "skill",
-    },
-    "library": {
-        "interface": "library",
-    },
-}
-
-
-def _render(tmp_path: Path, answers: dict[str, object]) -> Path:
-    dst = tmp_path / "generated"
-    _ = copier.run_copy(
-        str(TEMPLATE_DIR),
-        str(dst),
-        data={**BASE_ANSWERS, **answers},
-        defaults=True,
-        overwrite=True,
-        unsafe=False,
-        vcs_ref="HEAD",
-        skip_tasks=True,  # _tasks (uv sync, uv run inv configure) needs real network/uv — the
-        # manual end-to-end check (README.md) is what actually exercises it, not a routine test.
-    )
-    return dst
+from conftest import COMBINATIONS, Render, package_name_of, run_in_generated_repo
 
 
 @pytest.mark.parametrize("answers", COMBINATIONS.values(), ids=COMBINATIONS.keys())
-def test_generates_valid_pyproject_and_config(tmp_path: Path, answers: dict[str, object]) -> None:
-    dst = _render(tmp_path, answers)
+def test_generates_valid_pyproject_and_config(render: Render, answers: dict[str, object]) -> None:
+    dst = render(answers)
+    pkg = package_name_of(answers)
 
     pyproject = dst / "pyproject.toml"
     assert pyproject.exists()
     parsed = tomllib.loads(pyproject.read_text())
-    assert parsed["project"]["name"] == "example-pkg"
+    assert parsed["project"]["name"] == pkg.replace("_", "-")
 
     # ruff.toml/pyrightconfig.json/dprint.json/pytest.ini/.editorconfig are deliberately NOT
     # stamped into the template at all — copier.yml's _tasks pulls them from repo-tasks'
-    # canonical copies at generation time (skipped here, see _render's skip_tasks — exercised for
-    # real in test_configure_task_actually_runs below).
+    # canonical copies at generation time (skipped here, see the render fixture — exercised for
+    # real in test_generated_repo_passes_quality_check_out_of_the_box below).
     for name in ("ruff.toml", "pyrightconfig.json", "dprint.json", "pytest.ini", ".editorconfig"):
         assert not (dst / name).exists()
 
@@ -94,7 +33,7 @@ def test_generates_valid_pyproject_and_config(tmp_path: Path, answers: dict[str,
 
     # PEP 561 marker: without it a consumer installing this package (`uv add git+...`) sees it as
     # untyped, however fully annotated its source actually is.
-    assert (dst / "src" / "example_pkg" / "py.typed").exists()
+    assert (dst / "src" / pkg / "py.typed").exists()
 
     # core/cache.py's ResponseCache writes under .cache/<package_name> by default, so a generated
     # repo that fetches would otherwise offer its own disk cache up for committing.
@@ -113,41 +52,41 @@ def test_generates_valid_pyproject_and_config(tmp_path: Path, answers: dict[str,
     assert claude_skills.resolve() == agents_skills.resolve()
 
 
-def test_mcp_server_seeds_server_entrypoint(tmp_path: Path) -> None:
-    dst = _render(tmp_path, COMBINATIONS["mcp_server-http-single-source"])
+def test_mcp_server_seeds_server_entrypoint(render: Render) -> None:
+    dst = render(COMBINATIONS["mcp_server-http-single-source"])
     assert (dst / "src" / "example_pkg" / "server.py").exists()
     assert not (dst / "src" / "example_pkg" / "cli.py").exists()
 
 
-def test_cli_seeds_cli_entrypoint_and_no_fetch_modules(tmp_path: Path) -> None:
-    dst = _render(tmp_path, COMBINATIONS["cli-no-fetch"])
+def test_cli_seeds_cli_entrypoint_and_no_fetch_modules(render: Render) -> None:
+    dst = render(COMBINATIONS["cli-no-fetch"])
     assert (dst / "src" / "example_pkg" / "cli.py").exists()
     assert not (dst / "src" / "example_pkg" / "core").exists()
     assert not (dst / "src" / "example_pkg" / "server.py").exists()
 
 
-def test_multi_source_seeds_sources_split(tmp_path: Path) -> None:
-    dst = _render(tmp_path, COMBINATIONS["mcp_server-http-multi-source"])
+def test_multi_source_seeds_sources_split(render: Render) -> None:
+    dst = render(COMBINATIONS["mcp_server-http-multi-source"])
     assert (dst / "src" / "example_pkg" / "sources" / "base.py").exists()
     assert (dst / "src" / "example_pkg" / "sources" / "olx" / "source.py").exists()
     assert not (dst / "src" / "example_pkg" / "parse.py").exists()
 
 
-def test_single_source_stays_flat(tmp_path: Path) -> None:
-    dst = _render(tmp_path, COMBINATIONS["mcp_server-http-single-source"])
+def test_single_source_stays_flat(render: Render) -> None:
+    dst = render(COMBINATIONS["mcp_server-http-single-source"])
     assert (dst / "src" / "example_pkg" / "parse.py").exists()
     assert not (dst / "src" / "example_pkg" / "sources").exists()
 
 
-def test_browser_session_seeds_fetch_browser_not_http_fetch(tmp_path: Path) -> None:
-    dst = _render(tmp_path, COMBINATIONS["mcp_server-browser-session"])
+def test_browser_session_seeds_fetch_browser_not_http_fetch(render: Render) -> None:
+    dst = render(COMBINATIONS["mcp_server-browser-session"])
     assert (dst / "src" / "example_pkg" / "core" / "fetch_browser.py").exists()
     assert not (dst / "src" / "example_pkg" / "core" / "fetch.py").exists()
     assert not (dst / "src" / "example_pkg" / "core" / "cache.py").exists()
 
 
-def test_skill_seeds_agent_skill_dir_and_orchestrator(tmp_path: Path) -> None:
-    dst = _render(tmp_path, COMBINATIONS["skill"])
+def test_skill_seeds_agent_skill_dir_and_orchestrator(render: Render) -> None:
+    dst = render(COMBINATIONS["skill"])
     # Kebab-case, matching the SKILL.md `name:` field and every skill in the family — the
     # directory name is the skill's identity to Claude Code, so a snake_case package_name must
     # not leak into it.
@@ -156,8 +95,8 @@ def test_skill_seeds_agent_skill_dir_and_orchestrator(tmp_path: Path) -> None:
     assert not (dst / "src" / "example_pkg" / "core").exists()
 
 
-def test_library_seeds_nothing_but_the_bare_package(tmp_path: Path) -> None:
-    dst = _render(tmp_path, COMBINATIONS["library"])
+def test_library_seeds_nothing_but_the_bare_package(render: Render) -> None:
+    dst = render(COMBINATIONS["library"])
     assert (dst / "src" / "example_pkg" / "__init__.py").exists()
     for extra in ("server.py", "cli.py", "app.py", "orchestrator.py", "core", "sources"):
         assert not (dst / "src" / "example_pkg" / extra).exists()
@@ -166,25 +105,25 @@ def test_library_seeds_nothing_but_the_bare_package(tmp_path: Path) -> None:
     assert not (dst / ".agents" / "skills" / "example-pkg").exists()
 
 
-def test_library_seeds_a_smoke_test(tmp_path: Path) -> None:
+def test_library_seeds_a_smoke_test(render: Render) -> None:
     """Every other interface seeds a test for its own entrypoint; a library has none to exercise,
     so it gets an import smoke test instead. Not boilerplate for its own sake — it's the seed of a
     working test suite, and without it `pytest` exits nonzero (no tests collected) in a freshly
     generated library repo, i.e. `inv quality.check` fails out of the box."""
-    dst = _render(tmp_path, COMBINATIONS["library"])
+    dst = render(COMBINATIONS["library"])
     assert (dst / "tests" / "test_example_pkg.py").exists()
 
 
-def test_with_docs_off_by_default_seeds_no_docs_site(tmp_path: Path) -> None:
-    dst = _render(tmp_path, COMBINATIONS["library"])
+def test_with_docs_off_by_default_seeds_no_docs_site(render: Render) -> None:
+    dst = render(COMBINATIONS["library"])
     assert not (dst / "mkdocs.yml").exists()
     assert not (dst / "docs").exists()
     assert not (dst / ".github" / "workflows" / "docs.yml").exists()
     assert "docs" not in tomllib.loads((dst / "pyproject.toml").read_text())["dependency-groups"]
 
 
-def test_with_docs_seeds_docs_site(tmp_path: Path) -> None:
-    dst = _render(tmp_path, {**COMBINATIONS["library"], "with_docs": True})
+def test_with_docs_seeds_docs_site(render: Render) -> None:
+    dst = render({**COMBINATIONS["library"], "with_docs": True})
 
     mkdocs_yml = dst / "mkdocs.yml"
     assert mkdocs_yml.exists()
@@ -204,7 +143,7 @@ def test_with_docs_seeds_docs_site(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("combo_name", COMBINATIONS)
-def test_generated_repo_passes_quality_check_out_of_the_box(tmp_path: Path, combo_name: str) -> None:
+def test_generated_repo_passes_quality_check_out_of_the_box(render: Render, combo_name: str) -> None:
     """Real end-to-end: renders without skip_tasks (copier.yml's _tasks — `uv sync`, then
     `uv run inv configure` — actually runs, hitting the network and pulling repo-tasks'
     canonical configs for real), then runs the generated repo's own `inv quality.check` and
@@ -220,33 +159,8 @@ def test_generated_repo_passes_quality_check_out_of_the_box(tmp_path: Path, comb
     markdown-wrapping bug in the generated README.md/SKILL.md passed a `precommit`-based version
     of this test while failing every generated repo's real CI).
     """
-    dst = tmp_path / "generated"
-    _ = copier.run_copy(
-        str(TEMPLATE_DIR),
-        str(dst),
-        data={**BASE_ANSWERS, **COMBINATIONS[combo_name]},
-        defaults=True,
-        overwrite=True,
-        unsafe=True,
-        vcs_ref="HEAD",
-    )
+    dst = render(COMBINATIONS[combo_name], run_tasks=True)
     assert (dst / "pyrightconfig.json").exists()  # _tasks ran for real, configs.pull included
 
-    result = subprocess.run(
-        # Bare `inv`, not `uv run inv` -- repo-tasks/invoke are deliberately never project
-        # dependencies of a generated repo (see pyproject.toml.jinja), only the globally
-        # `uv tool install`ed `repo-tasks` on this machine, same assumption copier.yml's own
-        # `_tasks` and the generated .github/workflows/ci.yml both make. `dst/.venv/bin` is
-        # prepended ahead of whatever's already on PATH so the generated repo's own
-        # ruff/pytest/basedpyright/... always win over this test's own dev venv (this suite's own
-        # dependency-groups.dev has no reason to match a given combination's own dependencies --
-        # confirmed live: a bare inherited PATH resolved `pytest` to *this* repo's venv instead of
-        # the generated one, and the generated repo's `typer` dependency was invisible there).
-        ["inv", "quality.check"],
-        cwd=dst,
-        env={**os.environ, "PATH": f"{dst / '.venv' / 'bin'}:{os.environ['PATH']}"},
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = run_in_generated_repo(dst, "inv", "quality.check")
     assert result.returncode == 0, result.stdout + result.stderr

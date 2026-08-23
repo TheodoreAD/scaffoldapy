@@ -11,8 +11,9 @@ repeat them here, only what's specific to this repo.
   `repo-tasks` nor `invoke` is a dependency of this repo, same as every repo it generates.
 - `inv dev-env.setup` once after cloning, then plain `pytest`/`inv` — no `uv run` prefix.
 - `inv quality.precommit` before considering a change done.
-- `pytest` — the whole suite is `tests/test_template.py`, and it runs in ~40s. Don't reach for a
-  throwaway render script to check template output; the suite already renders every combination.
+- `pytest` — the whole suite runs in under a minute. Don't reach for a throwaway render script to
+  check template output: `tests/conftest.py`'s `render` fixture sandboxes any combination into
+  `tmp_path` in one call, and the suite already renders every `COMBINATIONS` entry.
 
 ## Two file trees, and only one of them is the template
 
