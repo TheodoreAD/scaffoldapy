@@ -180,13 +180,20 @@ def test_with_docs_seeds_docs_site(tmp_path: Path) -> None:
     assert "site/" in (dst / ".gitignore").read_text()
 
 
-def test_generated_repo_passes_quality_check_out_of_the_box(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "combo_name",
+    [name for name in COMBINATIONS if name != "library"],
+)
+def test_generated_repo_passes_quality_check_out_of_the_box(tmp_path: Path, combo_name: str) -> None:
     """Real end-to-end: renders without skip_tasks (copier.yml's _tasks — `uv sync`, then
     `uv run inv configure` — actually runs, hitting the network and pulling repo-tasks'
     canonical configs for real), then runs the generated repo's own `inv quality.check` and
-    asserts it genuinely exits 0. `cli-no-fetch`, not `library` — the `library` interface
-    generates no test files at all, which makes pytest itself exit nonzero (no tests collected)
-    for a reason unrelated to what this test checks.
+    asserts it genuinely exits 0. Parametrized over every `COMBINATIONS` entry except `library` —
+    the `library` interface generates no test files at all, which makes pytest itself exit nonzero
+    (no tests collected) for a reason unrelated to what this test checks. Full interface coverage
+    matters here specifically: `orchestrator.py`'s `contextlib.suppress`/`async with` bug (fixed
+    2026-08-23) only existed in the `skill` interface's own template, invisible to a version of
+    this test that only ever rendered `cli-no-fetch`.
 
     Deliberately `quality.check`, not `quality.precommit` — the generated repo's actual CI
     (`.github/workflows/ci.yml`) runs check-only, with no auto-fix step first. `precommit` runs
@@ -199,7 +206,7 @@ def test_generated_repo_passes_quality_check_out_of_the_box(tmp_path: Path) -> N
     _ = copier.run_copy(
         str(TEMPLATE_DIR),
         str(dst),
-        data={**BASE_ANSWERS, **COMBINATIONS["cli-no-fetch"]},
+        data={**BASE_ANSWERS, **COMBINATIONS[combo_name]},
         defaults=True,
         overwrite=True,
         unsafe=True,
