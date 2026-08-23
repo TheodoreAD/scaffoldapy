@@ -92,6 +92,10 @@ def test_generates_valid_pyproject_and_config(tmp_path: Path, answers: dict[str,
     assert (dst / "LICENSE").exists()
     assert (dst / ".github" / "workflows" / "ci.yml").exists()
 
+    # core/cache.py's ResponseCache writes under .cache/<package_name> by default, so a generated
+    # repo that fetches would otherwise offer its own disk cache up for committing.
+    assert ".cache/" in (dst / ".gitignore").read_text()
+
     agents_md = dst / "AGENTS.md"
     assert agents_md.exists()
     claude_md = dst / "CLAUDE.md"
