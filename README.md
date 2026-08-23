@@ -47,9 +47,10 @@ generated project. `ruff.toml`/`pyrightconfig.json`/`dprint.json`/`pytest.ini`/`
 `uv run inv configure`) pulls them from `repo-tasks`' canonical copies automatically right after
 generation, same mechanism every other consumer uses (see
 [`contributing/repo-family-architecture.md`](https://github.com/TheodoreAD/power-user-linux-setup/blob/master/contributing/repo-family-architecture.md)
-in `power-user-linux-setup`). `LICENSE`, `tasks.py`, `.gitignore`, `.github/workflows/ci.yml` are
-still deliberately duplicated in both places with identical content — kept in sync by hand, since
-those aren't `repo-tasks`' concern.
+in `power-user-linux-setup`). `LICENSE`, `.envrc` and `.github/workflows/ci.yml` are still
+deliberately duplicated in both places byte-for-byte, since those aren't `repo-tasks`' concern —
+`tests/test_repo_sync.py` is what keeps them that way. `.gitignore` is duplicated too, but the
+template's copy is a superset rather than a match.
 
 ## Dev loop
 

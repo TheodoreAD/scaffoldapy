@@ -18,12 +18,17 @@ Everything at this repo's root — `pyproject.toml`, `tasks.py`, `ruff.toml`, `t
 `scaffoldapy`'s _own_ dev tooling and is never copied anywhere. Editing the root copy when the
 template copy was meant is the easiest mistake to make here.
 
-Some files deliberately exist in both places with identical content (`LICENSE`, `tasks.py`,
-`.gitignore`, `.github/workflows/ci.yml`) and are kept in sync by hand. Others deliberately exist
-only at the root and must **not** be added to `template/` — `ruff.toml`, `pyrightconfig.json`,
-`dprint.json`, `pytest.ini`, `.editorconfig` are pulled from `repo-tasks`' canonical copies by
-`copier.yml`'s `_tasks` at generation time instead, and `tests/test_template.py` asserts they're
-absent from a freshly rendered repo.
+Some files deliberately exist in both places. `LICENSE`, `.envrc` and `.github/workflows/ci.yml` are
+byte-identical, and `tests/test_repo_sync.py` fails if they ever stop being — hand-syncing is not a
+plan on its own, which is how `ci.yml` sat on the pre-`repo-tasks` CI recipe at the root while the
+template's copy had moved on. `.gitignore` is the deliberate exception: the template's copy is a
+superset (a generated repo can have `site/` and `.cache/`; this one can't), so the guard checks
+containment rather than equality.
+
+Others deliberately exist only at the root and must **not** be added to `template/` — `ruff.toml`,
+`pyrightconfig.json`, `dprint.json`, `pytest.ini`, `.editorconfig` are pulled from `repo-tasks`'
+canonical copies by `copier.yml`'s `_tasks` at generation time instead, and `tests/test_template.py`
+asserts they're absent from a freshly rendered repo.
 
 Interface-conditional template files encode the condition in the _filename_, e.g.
 `template/tests/{% if interface == "cli" %}test_cli.py{% endif %}.jinja` — an empty rendered name
