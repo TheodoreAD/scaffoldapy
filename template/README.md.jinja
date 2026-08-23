@@ -6,15 +6,16 @@
 
 This repo came out of generation already fully set up — `uv sync` and `inv configure` (venv,
 `direnv allow`, the Claude Code Bash-tool hook, and the canonical `ruff.toml`/`pyrightconfig.json`/
-`dprint.json`/`pytest.ini`/`.editorconfig` from [`repo-tasks`](https://github.com/TheodoreAD/repo-tasks))
-already ran automatically at generation time. Day to day:
+`dprint.json`/`pytest.ini`/`.editorconfig` from
+[`repo-tasks`](https://github.com/TheodoreAD/repo-tasks)) already ran automatically at generation
+time. Day to day:
 
-- `inv quality.precommit` before considering a change done — fixes what's auto-fixable, then runs the
-  full check gate. See `repo-tasks` for what each step does, and how new task modules show up under
-  their own prefix automatically as `repo-tasks` grows, with no change needed here.
+- `inv quality.precommit` before considering a change done — fixes what's auto-fixable, then runs
+  the full check gate. See `repo-tasks` for what each step does, and how new task modules show up
+  under their own prefix automatically as `repo-tasks` grows, with no change needed here.
 - `pytest` — tests live in `tests/`, fixture-based, no live network calls.
-- `inv configure` again any time — safe to re-run, e.g. after `uv sync` picks up new dependencies, or
-  to re-pull the latest canonical config once `repo-tasks` is bumped
+- `inv configure` again any time — safe to re-run, e.g. after `uv sync` picks up new dependencies,
+  or to re-pull the latest canonical config once `repo-tasks` is bumped
   (`uv lock --upgrade-package repo-tasks`).
 {% if with_docs -%}
 - `inv docs.build` builds the docs site (zensical, strict mode) to `site/`; `inv docs.serve` runs it
