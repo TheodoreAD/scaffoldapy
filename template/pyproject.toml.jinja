@@ -31,6 +31,12 @@ dependencies = []
 {{ package_name }} = "{{ package_name }}.cli:app"
 {% endif -%}
 
+{#- Deliberately NOT the `dependencies = []` shape above, even though an empty dev group looks
+    identical: `repo-tasks configs.ensure-deps` fills this group in at generation time by
+    splicing `  "<dep>",\n` lines in right after the `[` (a regex insert, not a TOML rewrite), so
+    it needs the bracket pair already spread across two lines. Collapse this to `dev = []` and
+    ensure-deps produces `dev = [  "basedpyright...",` — which dprint then rejects, failing the
+    generated repo's very first `inv quality.check`. Confirmed live 2026-08-23. -#}
 [dependency-groups]
 dev = [
 {%- if interface == "web_service" %}
