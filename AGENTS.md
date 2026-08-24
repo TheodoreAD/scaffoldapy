@@ -27,7 +27,11 @@ Following `repo-tasks/contributing/test-tiers.md`, which is also where the shipp
   copier.yml's `_tasks` skipped, so it needs nothing beyond the dev dependency group.
 - `tests/integration/` — `inv test.integration`. One module, `test_e2e.py`, rendering every
   `COMBINATIONS` entry for real: network, `uv`, and the global `repo-tasks` install. `ci.yml` runs
-  it on every push, so it is not opt-in the way `repo-tasks`' own Docker tier is.
+  it on every push, so it is not opt-in the way `repo-tasks`' own Docker tier is. Its own
+  `conftest.py` holds the autouse `isolated_home` fixture: a real render's `inv configure` writes
+  user-wide state (`direnv allow`, `~/.cache/claude-code`), and this fixture is what keeps that
+  inside `tmp_path` — patching both `os.environ` and plumbum's `local.env`, because copier runs
+  `_tasks` from the latter, a snapshot taken at import that `monkeypatch.setenv` never reaches.
 - `tests/support.py` — `COMBINATIONS` and friends, imported by both tiers. Deliberately **not**
   `conftest.py`: `from conftest import ...` resolves to a different file per tier once a tier-local
   conftest exists, and `template/tests/conftest.py` shadows the real one outright whenever pytest
