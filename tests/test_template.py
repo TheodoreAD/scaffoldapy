@@ -133,9 +133,13 @@ def test_library_seeds_a_smoke_test(render: Render) -> None:
     """Every other interface seeds a test for its own entrypoint; a library has none to exercise,
     so it gets an import smoke test instead. Not boilerplate for its own sake — it's the seed of a
     working test suite, and without it `pytest` exits nonzero (no tests collected) in a freshly
-    generated library repo, i.e. `inv quality.check` fails out of the box."""
+    generated library repo, i.e. `inv quality.check` fails out of the box.
+
+    Under tests/unit/, matching the `testpaths = tests/unit` that repo-tasks' canonical pytest.ini
+    ships to every generated repo — a flat tests/ only works via pytest's warn-and-search-from-cwd
+    fallback, which is not the layout a fresh repo should start life in."""
     dst = render(COMBINATIONS["library"])
-    assert (dst / "tests" / "test_example_pkg.py").exists()
+    assert (dst / "tests" / "unit" / "test_example_pkg.py").exists()
 
 
 def test_with_docs_off_by_default_seeds_no_docs_site(render: Render) -> None:

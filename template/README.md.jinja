@@ -13,7 +13,7 @@ time. Day to day:
 - `inv quality.precommit` before considering a change done — fixes what's auto-fixable, then runs
   the full check gate. See `repo-tasks` for what each step does, and how new task modules show up
   under their own prefix automatically as `repo-tasks` grows, with no change needed here.
-- `pytest` — tests live in `tests/`, fixture-based, no live network calls.
+- `pytest` — tests live in `tests/unit/`, fixture-based, no live network calls.
 - `inv configure` again any time — safe to re-run, e.g. after `uv sync` picks up new dependencies,
   or to re-pull the latest canonical config once `repo-tasks` is bumped
   (`uv lock --upgrade-package repo-tasks`).

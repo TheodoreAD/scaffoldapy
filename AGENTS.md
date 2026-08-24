@@ -35,8 +35,13 @@ canonical copies by `copier.yml`'s `_tasks` at generation time instead, and `tes
 asserts they're absent from a freshly rendered repo.
 
 Interface-conditional template files encode the condition in the _filename_, e.g.
-`template/tests/{% if interface == "cli" %}test_cli.py{% endif %}.jinja` — an empty rendered name
-means copier drops the file entirely.
+`template/tests/unit/{% if interface == "cli" %}test_cli.py{% endif %}.jinja` — an empty rendered
+name means copier drops the file entirely.
+
+A generated repo's seeded tests live under `template/tests/unit/` — the tier that `repo-tasks`'
+canonical `pytest.ini` names in `testpaths`, so a fresh repo matches it from its first commit
+instead of relying on pytest's search-from-cwd fallback. `template/tests/conftest.py` stays at the
+shared level, above the tier, so a repo that later adds `tests/integration/` can reach it.
 
 ## Never exclude a combination from the e2e test to make it pass
 
