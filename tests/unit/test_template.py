@@ -1,8 +1,9 @@
 """Renders a representative spread of copier.yml answer combinations and asserts the resulting file
-tree/config is well-formed. test_generated_repo_passes_quality_check_out_of_the_box is the one
-real end-to-end check — runs _tasks for real (network + uv) and asserts the generated repo's own
-`inv quality.check` actually exits 0, not just that its files look right — slower than the rest
-of this suite but still a real pytest test, not a manual step to remember."""
+tree/config is well-formed. Every render here skips copier.yml's _tasks, so the whole module needs
+nothing beyond the dev dependency group — that is what keeps it in the unit tier.
+
+The one check that renders for real, _tasks and all, is
+test_generated_repo_passes_quality_check_out_of_the_box in tests/integration/test_e2e.py."""
 
 import shutil
 import subprocess
@@ -13,14 +14,7 @@ from typing import cast
 import copier
 import pytest
 import yaml
-from conftest import (
-    BASE_ANSWERS,
-    COMBINATIONS,
-    TEMPLATE_DIR,
-    Render,
-    package_name_of,
-    run_in_generated_repo,
-)
+from support import BASE_ANSWERS, COMBINATIONS, TEMPLATE_DIR, Render, package_name_of
 
 
 @pytest.mark.parametrize("answers", COMBINATIONS.values(), ids=COMBINATIONS.keys())
@@ -253,28 +247,4 @@ def test_answers_file_is_dprint_clean_whatever_the_commit_hash(render: Render) -
         text=True,
         check=False,
     )
-    assert result.returncode == 0, result.stdout + result.stderr
-
-
-@pytest.mark.parametrize("combo_name", COMBINATIONS)
-def test_generated_repo_passes_quality_check_out_of_the_box(render: Render, combo_name: str) -> None:
-    """Real end-to-end: renders without skip_tasks (copier.yml's _tasks — `uv sync`, then
-    `uv run inv configure` — actually runs, hitting the network and pulling repo-tasks'
-    canonical configs for real), then runs the generated repo's own `inv quality.check` and
-    asserts it genuinely exits 0. Parametrized over every `COMBINATIONS` entry. Full interface
-    coverage matters here specifically: `orchestrator.py`'s `contextlib.suppress`/`async with` bug
-    (fixed 2026-08-23) only existed in the `skill` interface's own template, invisible to a version
-    of this test that only ever rendered `cli-no-fetch`.
-
-    Deliberately `quality.check`, not `quality.precommit` — the generated repo's actual CI
-    (`.github/workflows/ci.yml`) runs check-only, with no auto-fix step first. `precommit` runs
-    `fix` (ruff format, dprint fmt, ...) before checking, which would silently mask exactly the
-    kind of formatting bug this test exists to catch (confirmed live 2026-08-23: a dprint
-    markdown-wrapping bug in the generated README.md/SKILL.md passed a `precommit`-based version
-    of this test while failing every generated repo's real CI).
-    """
-    dst = render(COMBINATIONS[combo_name], run_tasks=True)
-    assert (dst / "pyrightconfig.json").exists()  # _tasks ran for real, configs.pull included
-
-    result = run_in_generated_repo(dst, "inv", "quality.check")
     assert result.returncode == 0, result.stdout + result.stderr

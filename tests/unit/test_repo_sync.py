@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).parent.parent
+REPO_ROOT = Path(__file__).parent.parent.parent
 TEMPLATE_ROOT = REPO_ROOT / "template"
 
 # Byte-identical in both places, by design. Not repo-tasks' concern (it owns ruff.toml and the

@@ -52,8 +52,8 @@ consumer uses (see
 [`contributing/repo-family-architecture.md`](https://github.com/TheodoreAD/power-user-linux-setup/blob/master/contributing/repo-family-architecture.md)
 in `power-user-linux-setup`). `LICENSE`, `.envrc`, `tasks.py` and `.github/workflows/ci.yml` are
 still deliberately duplicated in both places byte-for-byte, since those aren't `repo-tasks`' concern
-— `tests/test_repo_sync.py` is what keeps them that way. `.gitignore` is duplicated too, but the
-template's copy is a superset rather than a match.
+— `tests/unit/test_repo_sync.py` is what keeps them that way. `.gitignore` is duplicated too, but
+the template's copy is a superset rather than a match.
 
 ## Dev loop
 
@@ -64,10 +64,12 @@ template's copy is a superset rather than a match.
 - `inv quality.precommit` before considering a change done. The whole of `tasks.py` is an import of
   `repo-tasks`' own ready-made root Collection, which already nests `quality` (and every future
   module) under its own name — no local `add_collection` wiring needed here either.
-- `pytest` — most of `tests/test_template.py` renders a representative spread of `copier.yml` answer
-  combinations into a temp dir with `skip_tasks=True` (fast, offline — `_tasks` needs real
-  `uv`/network) and asserts the resulting file tree/config is well-formed.
-  `test_generated_repo_passes_quality_check_out_of_the_box` is the one real end-to-end check —
+- `inv test.unit` (or plain `pytest`) — the tier `precommit` runs, ~6s.
+  `tests/unit/test_template.py` renders a representative spread of `copier.yml` answer combinations
+  into a temp dir with `skip_tasks=True` (fast, offline — `_tasks` needs real `uv`/network) and
+  asserts the resulting file tree/config is well-formed.
+- `inv test.integration` — `tests/integration/test_e2e.py`, the one real end-to-end check, ~50s. It
   renders for real (`_tasks` included), then asserts the generated repo's own `inv quality.check`
   genuinely exits 0 (deliberately `check`, not `precommit` — `precommit` auto-fixes before checking,
-  which would mask real formatting bugs). Parametrized over every interface, `library` included.
+  which would mask real formatting bugs). Parametrized over every interface, `library` included. CI
+  runs it on every push; locally, `inv test.all` is what to run after touching `template/`.

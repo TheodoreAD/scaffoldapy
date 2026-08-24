@@ -11,9 +11,27 @@ repeat them here, only what's specific to this repo.
   `repo-tasks` nor `invoke` is a dependency of this repo, same as every repo it generates.
 - `inv dev-env.setup` once after cloning, then plain `pytest`/`inv` — no `uv run` prefix.
 - `inv quality.precommit` before considering a change done.
-- `pytest` — the whole suite runs in under a minute. Don't reach for a throwaway render script to
-  check template output: `tests/conftest.py`'s `render` fixture sandboxes any combination into
-  `tmp_path` in one call, and the suite already renders every `COMBINATIONS` entry.
+- **Anything under `template/` also needs `inv test.all`.** `precommit` runs the unit tier only
+  (~6s); the e2e that catches template _content_ bugs lives in the integration tier (~50s) and does
+  not run there. CI runs both, but finding it locally is the point.
+- Don't reach for a throwaway render script to check template output: `tests/conftest.py`'s `render`
+  fixture sandboxes any combination into `tmp_path` in one call, and the suite already renders every
+  `COMBINATIONS` entry.
+
+### Test tiers
+
+Following `repo-tasks/contributing/test-tiers.md`, which is also where the shipped
+`testpaths = tests/unit` comes from:
+
+- `tests/unit/` — `inv test.unit`, and the only tier in `quality.check`/`precommit`. Renders with
+  copier.yml's `_tasks` skipped, so it needs nothing beyond the dev dependency group.
+- `tests/integration/` — `inv test.integration`. One module, `test_e2e.py`, rendering every
+  `COMBINATIONS` entry for real: network, `uv`, and the global `repo-tasks` install. `ci.yml` runs
+  it on every push, so it is not opt-in the way `repo-tasks`' own Docker tier is.
+- `tests/support.py` — `COMBINATIONS` and friends, imported by both tiers. Deliberately **not**
+  `conftest.py`: `from conftest import ...` resolves to a different file per tier once a tier-local
+  conftest exists, and `template/tests/conftest.py` shadows the real one outright whenever pytest
+  falls back to searching from the working directory. Both confirmed live, both silent.
 
 ## Two file trees, and only one of them is the template
 
@@ -23,16 +41,16 @@ Everything at this repo's root — `pyproject.toml`, `tasks.py`, `ruff.toml`, `t
 template copy was meant is the easiest mistake to make here.
 
 Some files deliberately exist in both places. `LICENSE`, `.envrc`, `tasks.py` and
-`.github/workflows/ci.yml` are byte-identical, and `tests/test_repo_sync.py` fails if they ever stop
-being — hand-syncing is not a plan on its own, which is how `ci.yml` sat on the pre-`repo-tasks` CI
-recipe at the root while the template's copy had moved on. `.gitignore` is the deliberate exception:
-the template's copy is a superset (a generated repo can have `site/` and `.cache/`; this one can't),
-so the guard checks containment rather than equality.
+`.github/workflows/ci.yml` are byte-identical, and `tests/unit/test_repo_sync.py` fails if they ever
+stop being — hand-syncing is not a plan on its own, which is how `ci.yml` sat on the
+pre-`repo-tasks` CI recipe at the root while the template's copy had moved on. `.gitignore` is the
+deliberate exception: the template's copy is a superset (a generated repo can have `site/` and
+`.cache/`; this one can't), so the guard checks containment rather than equality.
 
 Others deliberately exist only at the root and must **not** be added to `template/` — `ruff.toml`,
 `pyrightconfig.json`, `dprint.json`, `pytest.ini`, `.editorconfig` are pulled from `repo-tasks`'
-canonical copies by `copier.yml`'s `_tasks` at generation time instead, and `tests/test_template.py`
-asserts they're absent from a freshly rendered repo.
+canonical copies by `copier.yml`'s `_tasks` at generation time instead, and
+`tests/unit/test_template.py` asserts they're absent from a freshly rendered repo.
 
 Interface-conditional template files encode the condition in the _filename_, e.g.
 `template/tests/unit/{% if interface == "cli" %}test_cli.py{% endif %}.jinja` — an empty rendered
@@ -45,10 +63,11 @@ shared level, above the tier, so a repo that later adds `tests/integration/` can
 
 ## Never exclude a combination from the e2e test to make it pass
 
-`test_generated_repo_passes_quality_check_out_of_the_box` renders for real (`_tasks` included:
-network, `uv`) and asserts a generated repo's own `inv quality.check` exits 0. It is the only test
-that catches template _content_ bugs — bad Jinja whitespace, unformatted output, broken generated
-code — and it only catches them for combinations it actually runs.
+`tests/integration/test_e2e.py`'s `test_generated_repo_passes_quality_check_out_of_the_box` renders
+for real (`_tasks` included: network, `uv`) and asserts a generated repo's own `inv quality.check`
+exits 0. It is the only test that catches template _content_ bugs — bad Jinja whitespace,
+unformatted output, broken generated code — and it only catches them for combinations it actually
+runs. It is also the reason a `template/` change needs `inv test.all`, not just `precommit`.
 
 Every entry in `COMBINATIONS` stays parametrized into it. If one fails, the template is wrong: fix
 the template. Confirmed twice: the `skill` interface's `orchestrator.py` bug survived while only

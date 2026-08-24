@@ -1,96 +1,15 @@
-"""Shared render machinery for the template test suite. Every render lands in pytest's own
-tmp_path sandbox, so checking a combination — in a test or a one-off investigation — is a single
-fixture call, never a throwaway render script in /tmp.
+"""Shared render machinery for the template test suite, reachable from both tiers. Every render
+lands in pytest's own tmp_path sandbox, so checking a combination — in a test or a one-off
+investigation — is a single fixture call, never a throwaway render script in /tmp.
 
-COMBINATIONS is the single parametrization source for the whole suite, including the real
-end-to-end quality gate — see AGENTS.md: never exclude a combination to make a test pass."""
+Fixtures only. The importable constants live in support.py, next door — see its docstring for why
+`from conftest import ...` is not safe to rely on here."""
 
-import os
-import subprocess
 from pathlib import Path
-from typing import Protocol
 
 import copier
 import pytest
-
-TEMPLATE_DIR = Path(__file__).parent.parent
-
-BASE_ANSWERS: dict[str, object] = {
-    "package_name": "example_pkg",
-    "description": "An example project.",
-    "github_repo": "TheodoreAD/example-pkg",
-}
-
-COMBINATIONS: dict[str, dict[str, object]] = {
-    "mcp_server-http-single-source": {
-        "interface": "mcp_server",
-        "fetch_strategy": "http",
-        "multi_source": False,
-        "source_key": "olx",
-    },
-    "mcp_server-http-multi-source": {
-        "interface": "mcp_server",
-        "fetch_strategy": "http",
-        "multi_source": True,
-        "source_key": "olx",
-    },
-    "mcp_server-browser-session": {
-        "interface": "mcp_server",
-        "fetch_strategy": "browser_session",
-        "multi_source": False,
-        "source_key": "temu",
-    },
-    # Covering each axis value once is not the same as covering their crossings: browser_session
-    # and multi_source were each green above while their intersection generated code that couldn't
-    # import (sources/base.py hardcoded the http fetcher, 2026-08-23).
-    "mcp_server-browser-multi-source": {
-        "interface": "mcp_server",
-        "fetch_strategy": "browser_session",
-        "multi_source": True,
-        "source_key": "temu",
-    },
-    "cli-no-fetch": {
-        "interface": "cli",
-        "fetch_strategy": "none",
-    },
-    "web_service-no-fetch": {
-        "interface": "web_service",
-        "fetch_strategy": "none",
-    },
-    "skill": {
-        "interface": "skill",
-    },
-    "library": {
-        "interface": "library",
-    },
-    # package_name length moves where dprint's 100-column reflow wraps any templated markdown prose
-    # that interpolates it — example_pkg (11 chars) passing proves nothing about a longer name.
-    # These two combinations are the ones whose markdown interpolates package_name into wrapped
-    # prose today (the browser-session README, the skill SKILL.md); the name is the family's
-    # longest real one, not an invented worst case.
-    "mcp_server-browser-session-long-name": {
-        "interface": "mcp_server",
-        "fetch_strategy": "browser_session",
-        "multi_source": False,
-        "source_key": "temu",
-        "package_name": "product_research_pipeline",
-        "github_repo": "TheodoreAD/product-research-pipeline",
-    },
-    "skill-long-name": {
-        "interface": "skill",
-        "package_name": "product_research_pipeline",
-        "github_repo": "TheodoreAD/product-research-pipeline",
-    },
-}
-
-
-def package_name_of(answers: dict[str, object]) -> str:
-    """The package_name a combination actually renders with (its own override, or the base one)."""
-    return str({**BASE_ANSWERS, **answers}["package_name"])
-
-
-class Render(Protocol):
-    def __call__(self, answers: dict[str, object], *, run_tasks: bool = False) -> Path: ...
+from support import BASE_ANSWERS, TEMPLATE_DIR, Render
 
 
 @pytest.fixture
@@ -98,9 +17,10 @@ def render(tmp_path: Path) -> Render:
     """Factory rendering the template into this test's own tmp_path sandbox.
 
     run_tasks=False (default): file-tree/config checks only — copier.yml's _tasks (uv sync,
-    inv configure) need real network/uv and are skipped.
+    inv configure) need real network/uv and are skipped. This is the unit tier's mode.
     run_tasks=True: the real end-to-end render — _tasks run, producing a generated repo with its
-    own .venv whose quality gate can be exercised via run_in_generated_repo.
+    own .venv whose quality gate can be exercised. Integration tier only; it is what makes that
+    tier slow and network-dependent.
     """
 
     def _render(answers: dict[str, object], *, run_tasks: bool = False) -> Path:
@@ -118,25 +38,3 @@ def render(tmp_path: Path) -> Render:
         return dst
 
     return _render
-
-
-def run_in_generated_repo(dst: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    """Run a command inside a generated repo, sandboxed to its own toolchain.
-
-    Bare `inv`, not `uv run inv` — repo-tasks/invoke are deliberately never project dependencies
-    of a generated repo (see pyproject.toml.jinja), only the globally `uv tool install`ed
-    repo-tasks on this machine, the same assumption copier.yml's own _tasks and the generated
-    .github/workflows/ci.yml both make. `dst/.venv/bin` is prepended ahead of whatever's already
-    on PATH so the generated repo's own ruff/pytest/basedpyright/... always win over this suite's
-    own dev venv (this suite's dependencies have no reason to match a given combination's —
-    confirmed live: a bare inherited PATH resolved `pytest` to *this* repo's venv instead of the
-    generated one, and the generated repo's `typer` dependency was invisible there).
-    """
-    return subprocess.run(
-        list(args),
-        cwd=dst,
-        env={**os.environ, "PATH": f"{dst / '.venv' / 'bin'}:{os.environ['PATH']}"},
-        capture_output=True,
-        text=True,
-        check=False,
-    )
