@@ -41,7 +41,9 @@ def run_in_generated_repo(dst: Path, *args: str) -> subprocess.CompletedProcess[
 
 
 @pytest.mark.parametrize("combo_name", COMBINATIONS)
-def test_generated_repo_passes_quality_check_out_of_the_box(render: Render, combo_name: str) -> None:
+def test_generated_repo_passes_quality_check_out_of_the_box(
+    render: Render, isolated_home: Path, combo_name: str
+) -> None:
     """Real end-to-end: renders without skip_tasks (copier.yml's _tasks — `uv sync`, then
     `uv run inv configure` — actually runs, hitting the network and pulling repo-tasks'
     canonical configs for real), then runs the generated repo's own `inv quality.check` and
@@ -59,6 +61,10 @@ def test_generated_repo_passes_quality_check_out_of_the_box(render: Render, comb
     """
     dst = render(COMBINATIONS[combo_name], run_tasks=True)
     assert (dst / "pyrightconfig.json").exists()  # _tasks ran for real, configs.pull included
+    # `inv configure`'s user-wide writes landed in the sandboxed HOME, not the dev machine's — the
+    # positive half of the isolated_home fixture's promise, checked where it is cheapest.
+    assert any((isolated_home / ".local" / "share" / "direnv" / "allow").iterdir())
+    assert any((isolated_home / ".cache" / "claude-code").iterdir())
 
     result = run_in_generated_repo(dst, "inv", "quality.check")
     assert result.returncode == 0, result.stdout + result.stderr
