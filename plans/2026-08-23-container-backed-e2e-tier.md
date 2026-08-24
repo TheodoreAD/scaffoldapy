@@ -22,5 +22,8 @@ infrastructure; every coverage hole found that day was closable with parametriza
 ## Recommended direction
 
 [DEFERRED: a container-backed e2e tier, so generation no longer depends on this machine's global
-`repo-tasks` install, `direnv`, or an inherited `PATH`. `repo-tasks`' own `tests/integration/` plus
-`pytest.ini`'s `--ignore` is the shape to copy if it happens.]
+`repo-tasks` install, `direnv`, or an inherited `PATH`. The tier itself now exists —
+`tests/integration/test_e2e.py`, split out on 2026-08-24 — so this is no longer a question of where
+such tests would live, only of what they run against: the e2e still renders into `tmp_path` on this
+machine. `repo-tasks`' `tests/integration/clean-os.Dockerfile` and its `testcontainers` fixtures are
+the shape to copy if it happens.]
