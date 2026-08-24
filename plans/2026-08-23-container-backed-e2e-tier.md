@@ -68,16 +68,23 @@ shape, from `repo-tasks/tests/integration/` and `contributing/test-tiers.md`:
 exercised on every push. What a container would add is that property **locally**, plus the ability
 to test against a `repo-tasks` version other than the one globally installed on this machine.
 
+### `$HOME` isolation landed in the existing tier (2026-08-24)
+
+`tests/integration/conftest.py`'s autouse `isolated_home` fixture points `HOME` at a `tmp_path`
+directory, drops the `XDG_*` overrides, and pins `UV_CACHE_DIR`/`UV_PYTHON_INSTALL_DIR` back to the
+real machine's (resolved via `uv cache dir`/`uv python dir`). The e2e now also asserts the direnv
+allow entry and the claude-code env file landed inside the fake HOME. Verified: the full tier passes
+with the two real directories' counts unchanged, and the 293+293 stale entries were purged.
+
+[PITFALL: `monkeypatch.setenv` alone does not reach copier's `_tasks`. copier runs them with
+plumbum's `local.env` (`copier/_main.py`, `subprocess.run(..., env=dict(local.env))`), a snapshot of
+`os.environ` taken when plumbum is first imported — so with only `os.environ` patched, the generated
+repo's configure step still wrote to the real HOME while the plain-subprocess
+`run_in_generated_repo` saw the fake one. Both mappings have to be patched; the fixture does it from
+one loop. Confirmed live, both leaks intact on the first attempt.]
+
 ## Open questions
 
-- [NEEDS CLARIFICATION: is `$HOME` isolation inside the existing tier enough? `Path.home()` honours
-  `HOME` on POSIX and `direnv` honours `HOME`/`XDG_DATA_HOME`, so pointing `HOME` at a
-  `tmp_path`-scoped directory for the copier `_tasks` subprocesses and `run_in_generated_repo`
-  should stop both leaks with no Docker and no speed cost — provided `UV_CACHE_DIR` is pinned to the
-  real cache (a cold uv cache per render would be the whole ~50s budget again) and the
-  `uv tool`-installed `inv` still resolves (its shim carries absolute paths under the real
-  `~/.local/share/uv/tools`, so it should). Cheap to verify: one combination with the override, then
-  count the two directories before and after.]
 - [NEEDS CLARIFICATION: if the container tier is built, does it replace the `tmp_path` e2e or sit
   beside it? Beside means two renders of every `COMBINATIONS` entry per `inv test.integration` — the
   slow tier roughly doubles, and in CI the container one is redundant with the runner itself.
@@ -89,10 +96,8 @@ to test against a `repo-tasks` version other than the one globally installed on 
 
 ## Recommended direction
 
-Do the `$HOME`-isolation fix in the existing tier first (a fixture change in `tests/conftest.py` or
-`test_e2e.py`, no new dependency), verify the leak stops, and clean up the 292+292 stale entries
-once. That answers the side-effect finding at near-zero cost and leaves the container question where
-the original decision put it.
+The side-effect finding is answered by the `$HOME` isolation above, at no new dependency and no
+speed cost. That leaves the container question exactly where the original decision put it.
 
 [DEFERRED: a container-backed e2e tier — `tests/integration/clean-os.Dockerfile` copied from
 `repo-tasks`' shape, `testcontainers` added to `dev`, a module-scoped container that runs
@@ -102,7 +107,3 @@ with no pre-installed `repo-tasks` (proving the bootstrap script + generation fr
 and generating against a `repo-tasks` version other than this machine's global install. Revisit
 trigger: the first time a `repo-tasks` change needs to be tested against this template before it is
 released, or a generated-repo failure reproduces in CI but not locally.]
-
-[UNVERIFIED: the `HOME`-override approach — that the global `inv`, `direnv allow`,
-`agents.wire-claude-hook`, and the venv sync all behave under a fake `HOME` with only `UV_CACHE_DIR`
-pinned. Designed from reading `agents.py`/`direnv.py`, not executed.]
