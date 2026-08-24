@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: landed
 updated: 2026-08-24
 depends_on: [repo-tasks]
 ---
@@ -63,7 +63,7 @@ A generated repo then matches the shipped `pytest.ini` from its first commit ins
 pytest's "No files were found in testpaths ... Searching recursively from the current directory
 instead" fallback, and has the family layout in place before its first test is written.
 
-### 2. `tests/combinations.py` — the shared fixture module, renamed off `conftest`
+### 2. `tests/support.py` — the shared module, renamed off `conftest`
 
 [DECISION: the shared non-fixture content must not live in `conftest.py`. Verified live 2026-08-24
 in a scratch repo: with a `tests/conftest.py` **and** a `tests/integration/conftest.py` present,
@@ -71,13 +71,12 @@ in a scratch repo: with a `tests/conftest.py` **and** a `tests/integration/conft
 `tests/unit/test_*.py` (works) but the tier-local `tests/integration/conftest.py` from
 `tests/integration/test_*.py` (`ImportError: cannot import name X from 'conftest'`). The failure is
 silent and direction-dependent, which is worse than a plain break. A distinctly-named
-`tests/combinations.py` imports identically from both tiers — verified in the same scratch repo.
+`tests/support.py` imports identically from both tiers — verified in the same scratch repo.
 `pytest.ini`'s `pythonpath` is not an alternative: it is a pulled canonical config and cannot be
 hand-edited here.]
 
-Moves into `tests/combinations.py`: `TEMPLATE_DIR`, `BASE_ANSWERS`, `COMBINATIONS`,
-`package_name_of`. These are module-level constants feeding `@pytest.mark.parametrize`, so they
-cannot be fixtures.
+Moves into `tests/support.py`: `TEMPLATE_DIR`, `BASE_ANSWERS`, `COMBINATIONS`, `package_name_of`.
+These are module-level constants feeding `@pytest.mark.parametrize`, so they cannot be fixtures.
 
 ### 3. `tests/unit/` + `tests/integration/`
 
@@ -88,8 +87,10 @@ cannot be fixtures.
   two to enforce what the default already encourages is not worth the indirection.]
 
 - `tests/unit/` — `test_repo_sync.py` and `test_template.py` minus the e2e (~27 tests, ~6s).
-- `tests/integration/conftest.py` — `run_in_generated_repo`, and nothing else. This is the one
-  helper a unit test must not reach by accident: it shells out into a generated repo.
+- `run_in_generated_repo` — the one helper a unit test must not reach by accident, since it shells
+  out into a generated repo. It landed directly in `test_e2e.py` rather than a
+  `tests/integration/conftest.py`: one module needs it, so a tier conftest would be premature, and
+  keeping it out of any conftest sidesteps the import ambiguity in §2 entirely.
 - `tests/integration/test_e2e.py` — `test_generated_repo_passes_quality_check_out_of_the_box`, its
   ten parametrizations, and its full existing docstring.
 
@@ -129,7 +130,7 @@ Step 1 (now):
 Step 2 (after `repo-tasks` ships and `inv repo-tasks.update` lands it here):
 
 - `pytest.ini` — via `inv configs.pull`, standalone commit
-- `tests/combinations.py` (new), `tests/conftest.py`, `tests/unit/**`, `tests/integration/**`
+- `tests/support.py` (new), `tests/conftest.py`, `tests/unit/**`, `tests/integration/**`
 - `.github/workflows/ci.yml` and `template/.github/workflows/ci.yml` — identical new step
 - `AGENTS.md` — the `inv test.all` rule for `template/` changes, and the tier layout
 
@@ -146,3 +147,34 @@ Step 2 (after `repo-tasks` ships and `inv repo-tasks.update` lands it here):
 ## Open questions
 
 None.
+
+## Migrated to
+
+This repo has no `contributing/`, so the durable design rationale went to `AGENTS.md` — its "Build &
+test" section and the new "Test tiers" subsection under it:
+
+- The tier layout, what each one costs, and which one `quality.check`/`precommit` runs.
+- The `tests/support.py` naming decision and both confirmed `conftest` shadowing modes. The fuller
+  version of that trap, with the reproduction, lives in `tests/support.py`'s own module docstring —
+  the place someone about to reintroduce it is actually reading.
+- The `inv test.all`-after-touching-`template/` rule, and the pointer to it from the "Never exclude
+  a combination" section that explains why it matters.
+
+`README.md`'s "Dev loop" carries the usage-facing half (`inv test.unit` vs `inv test.integration`,
+and what each covers). The `ci.yml` comment carries why the step is safe to keep byte-identical
+between the root and template copies.
+
+Deliberately **not** migrated:
+
+- The measured durations (55.9s → 6s + 50s). `AGENTS.md` keeps the rounded figures because they
+  motivate the split; the per-parametrization breakdown was evidence for a decision now made, and
+  would rot.
+- The "globally installed `repo-tasks` is still pre-tier" pitfall — resolved by
+  `inv repo-tasks.update` on 2026-08-24 and false from then on.
+- The step-by-step sequencing and `## Files touched`, which is what the commits themselves record.
+- Why the e2e went to the integration tier rather than staying in the gate. That argument is in its
+  commit message; `AGENTS.md` states the outcome and the one rule it imposes, which is what a reader
+  arriving at that file needs.
+
+The container-backed e2e question stays open in `plans/2026-08-23-container-backed-e2e-tier.md`,
+updated to reflect that the tier now exists.
