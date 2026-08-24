@@ -14,6 +14,12 @@ repeat them here, only what's specific to this repo.
 - **Anything under `template/` also needs `inv test.all`.** `precommit` runs the unit tier only
   (~6s); the e2e that catches template _content_ bugs lives in the integration tier (~50s) and does
   not run there. CI runs both, but finding it locally is the point.
+- The e2e verdict is only as current as the **global** `repo-tasks` install it renders with, not the
+  `repo-tasks` checkout next door. A template change that leans on a `repo-tasks` fix (the
+  empty-`dev`-group shape did, 2026-08-25) needs that fix pushed to `repo-tasks` `main` and then
+  `inv repo-tasks.update` here first — otherwise `inv test.all` fails against the stale tool and
+  looks like a template bug. `./bootstrap-repo-tasks.sh` is unpinned until `repo-tasks` tags a
+  release, so CI installs `main` and never has this lag.
 - Don't reach for a throwaway render script to check template output: `tests/conftest.py`'s `render`
   fixture sandboxes any combination into `tmp_path` in one call, and the suite already renders every
   `COMBINATIONS` entry.
