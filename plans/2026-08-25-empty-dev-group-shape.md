@@ -8,8 +8,8 @@ depends_on: [repo-tasks]
 
 `template/pyproject.toml.jinja` carries a comment above `[dependency-groups]` explaining why the
 empty `dev` group cannot take the `dev = []` shape dprint prefers (and that `dependencies = []`
-already uses): `repo-tasks configs.ensure-deps` spliced its entries in right after the `[`, which
-on a one-line empty array produced `dev = [  "basedpyright...",` — rejected by dprint, failing the
+already uses): `repo-tasks configs.ensure-deps` spliced its entries in right after the `[`, which on
+a one-line empty array produced `dev = [  "basedpyright...",` — rejected by dprint, failing the
 generated repo's first `inv quality.check`. Confirmed live 2026-08-23, 6 of 7 e2e combinations.
 
 That defect is fixed upstream as of repo-tasks commit `2f79b4b` (2026-08-25): `ensure_deps` now
