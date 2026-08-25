@@ -1,5 +1,5 @@
 ---
-status: idea
+status: landed
 updated: 2026-08-25
 depends_on: [repo-tasks]
 ---
@@ -50,8 +50,21 @@ populated before `5c5ab92` has the same gap; `power-user-linux-setup` already ca
    to prove the group, not the user-wide tool, satisfies the step — the local green that hid this is
    the thing to stop trusting.
 
-[NEEDS CLARIFICATION: is a consumer's `dev` group drifting behind `repo-tasks`' tool list something
-`configs.diff`/`configs.status` should report, the way they already report drifted config files? A
-gate step that depends on a tool the consumer never declared is the same shape as a pulled
-`pytest.ini` naming a directory the consumer never created — the shared side moved and the consumer
-found out from CI. That belongs to `repo-tasks`, not here; noting it so it isn't lost.]
+## Landed 2026-08-25
+
+Steps 1–3 done in `56d80e8`: `inv repo-tasks.update` first (the global tool was behind `main`, so
+`ensure-deps` didn't know the new tools yet), then `repo-tasks configs.ensure-deps` +
+`inv deps.lock`, which also brought in `invoke-stubs`. `which actionlint` resolves to `.venv/bin`,
+so the group, not the user-wide install, satisfies the step; the e2e confirms a fresh render's `dev`
+group carries `actionlint-py`.
+
+The same update exposed a second, larger break — `failOnWarnings` flipped on family-wide, and every
+generated repo carried warnings — fixed in `2e29f2b`. Both incidents are the subject of the
+repo-tasks plan below.
+
+## Migrated to
+
+- The open question about `configs.diff` reporting dev-group drift →
+  `repo-tasks/plans/2026-08-25-consumer-transitions.md`, together with the incident record and the
+  wider lesson (consumers track `main` unpinned; the dev machine lags; `ensure-deps` is one-shot).
+- Not migrated: the commit-level diagnosis above — it is in `56d80e8`'s message and the CI run logs.

@@ -1,5 +1,5 @@
 ---
-status: idea
+status: landed
 updated: 2026-08-25
 depends_on: [repo-tasks]
 ---
@@ -26,5 +26,15 @@ Once this repo's pinned `repo-tasks` includes that commit:
    multi-line shape on its own.
 2. Re-run the e2e matrix; the 6 previously-failing combinations are the regression check.
 
-[NEEDS CLARIFICATION: is the pinned `repo-tasks` version already past `2f79b4b`, or does this wait
-on a release/`inv repo-tasks.update` first? Check the bootstrap stamp before starting.]
+## Landed 2026-08-25
+
+Step 1 in `8362c92`. Step 2: the global tool was moved to `main` (`09321ae`, well past `2f79b4b`)
+with `inv repo-tasks.update`, and the full e2e matrix passed 10/10 — the six previously-failing
+combinations included. The bootstrap stamp stays unpinned (no release tag exists), so CI has always
+installed `main` and never needed the wait.
+
+## Migrated to
+
+Nothing — the template comment is gone, the `[]` shape is in `template/pyproject.toml.jinja`, and
+the e2e is the regression check. The upstream fix's own record is repo-tasks' unit and integration
+tests around `ensure_deps`.
