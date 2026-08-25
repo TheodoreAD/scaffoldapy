@@ -1,7 +1,12 @@
 """Disk-backed HTTP response cache — avoids re-fetching the same URL within its TTL, direct service
 to the "polite" mission (less repeat load on the target site), not just a perf win."""
 
-import diskcache
+from typing import cast
+
+# diskcache ships no stubs and no types-diskcache exists; the two calls below are the whole
+# surface this module uses, so each is pinned to a known type at its one call site rather than by
+# relaxing a rule for everyone.
+import diskcache  # pyright: ignore[reportMissingTypeStubs]
 
 DEFAULT_TTL_SECONDS = 60 * 60
 
@@ -15,8 +20,8 @@ class ResponseCache:
         self._ttl_seconds = ttl_seconds
 
     def get(self, url: str) -> str | None:
-        value = self._cache.get(url)
+        value = cast(object, self._cache.get(url))  # pyright: ignore[reportUnknownMemberType]
         return value if isinstance(value, str) else None
 
     def set(self, url: str, content: str) -> None:
-        _ = self._cache.set(url, content, expire=self._ttl_seconds)
+        _ = self._cache.set(url, content, expire=self._ttl_seconds)  # pyright: ignore[reportUnknownMemberType]
