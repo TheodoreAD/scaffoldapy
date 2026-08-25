@@ -106,4 +106,9 @@ speed cost. That leaves the container question exactly where the original decisi
 with no pre-installed `repo-tasks` (proving the bootstrap script + generation from zero, locally),
 and generating against a `repo-tasks` version other than this machine's global install. Revisit
 trigger: the first time a `repo-tasks` change needs to be tested against this template before it is
-released, or a generated-repo failure reproduces in CI but not locally.]
+released, or a generated-repo failure reproduces in CI but not locally. Both halves fired on
+2026-08-25 without a container being the fix: two `repo-tasks` `main` changes broke every generated
+repo and were only visible once the global tool was updated (`inv repo-tasks.update`, the
+AGENTS.md-sanctioned workaround), and the e2e's own direnv assertion passed locally and failed on a
+runner with no `direnv`. Neither needed a container, but each cost a full CI round trip to learn
+what a local clean-OS run would have shown in a minute — the tally to weigh against the build cost.]
