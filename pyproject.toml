@@ -18,6 +18,9 @@ dev = [
   "shellcheck-py",
   "shfmt-py",
   "dprint-py",
+  "actionlint-py",
+  "act-bin",
+  "invoke-stubs @ git+https://github.com/TheodoreAD/invoke-stubs",
 ]
 
 [tool.uv]
