@@ -8,6 +8,7 @@ AGENTS.md, which also carries the standing rule that a combination is never excl
 pass."""
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -62,9 +63,12 @@ def test_generated_repo_passes_quality_check_out_of_the_box(
     dst = render(COMBINATIONS[combo_name], run_tasks=True)
     assert (dst / "pyrightconfig.json").exists()  # _tasks ran for real, configs.pull included
     # `inv configure`'s user-wide writes landed in the sandboxed HOME, not the dev machine's — the
-    # positive half of the isolated_home fixture's promise, checked where it is cheapest.
-    assert any((isolated_home / ".local" / "share" / "direnv" / "allow").iterdir())
+    # positive half of the isolated_home fixture's promise, checked where it is cheapest. The
+    # direnv half only where direnv exists: `direnv.allow` no-ops without the binary, and the CI
+    # runner has none (confirmed 2026-08-25 — green locally, red in CI, on this very assertion).
     assert any((isolated_home / ".cache" / "claude-code").iterdir())
+    if shutil.which("direnv"):
+        assert any((isolated_home / ".local" / "share" / "direnv" / "allow").iterdir())
 
     result = run_in_generated_repo(dst, "inv", "quality.check")
     assert result.returncode == 0, result.stdout + result.stderr
