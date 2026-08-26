@@ -21,6 +21,9 @@ dev = [
   "actionlint-py",
   "act-bin",
   "invoke-stubs @ git+https://github.com/TheodoreAD/invoke-stubs",
+  "pytest-cov",
+  "zizmor",
+  "hadolint-py",
 ]
 
 [tool.uv]
