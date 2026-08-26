@@ -63,7 +63,7 @@ uv tool install -e ~/projects/github.com-personal/{{ package_name.replace('_', '
 uv tool install git+https://github.com/{{ github_repo }}
 ```
 
-Drops a `{{ package_name }}` binary on `PATH` (`~/.local/bin/` by default).
+Puts the `{{ package_name }}` binary on `PATH` (`~/.local/bin/` by default).
 {% elif interface == "web_service" -%}
 ## Running
 
