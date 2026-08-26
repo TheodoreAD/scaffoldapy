@@ -1,0 +1,12 @@
+from {{ package_name }}.models import Result
+from {{ package_name }}.parse import parse_result
+
+
+# Seed test: parse_result ignores its html argument until real parsing lands, so what is worth
+# pinning now is the shape of what it returns — a Result tagged with this source and carrying the
+# url it was asked about. Replace the assertion on `url` with real extracted fields as they arrive.
+def test_parse_result_tags_the_source_and_keeps_the_url() -> None:
+    result = parse_result("<html></html>", url="https://example.com/1")
+    assert isinstance(result, Result)
+    assert result.source == "{{ source_key }}"
+    assert result.url == "https://example.com/1"

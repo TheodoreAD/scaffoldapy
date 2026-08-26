@@ -1,0 +1,10 @@
+from {{ package_name }}.models import Result
+
+
+# Seed test: Result carries placeholder fields until real ones land, so this pins the two things
+# that are already true of it — it holds what it was given, and it is frozen, which is what makes
+# it safe to pass between a source adapter and whatever consumes the results.
+def test_result_keeps_what_it_was_given() -> None:
+    result = Result(source="{{ source_key }}", url="https://example.com/1")
+    assert result.source == "{{ source_key }}"
+    assert result.url == "https://example.com/1"
