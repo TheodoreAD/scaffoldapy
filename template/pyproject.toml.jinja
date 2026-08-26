@@ -37,7 +37,12 @@ dependencies = []
 [dependency-groups]
 dev = [
 {%- if interface == "web_service" %}
-  "httpx", # FastAPI's TestClient needs it even when fetch_strategy doesn't already pull it in
+  # FastAPI's TestClient needs a client even when fetch_strategy doesn't already pull one in, and
+  # starlette now wants httpx2: given plain httpx it still works, but raises
+  # StarletteDeprecationWarning at import of starlette.testclient — which the shared pytest.ini's
+  # `filterwarnings = error` turns into a collection error, so the generated repo's gate fails out
+  # of the box. httpx2 is upstream's own answer, and starlette prefers it when present.
+  "httpx2",
 {% endif -%}
 ]
 {%- if with_docs %}
