@@ -10,7 +10,7 @@ from pathlib import Path
 
 import copier
 import pytest
-from copier.errors import DirtyLocalWarning
+from copier.errors import DirtyLocalWarning, ShallowCloneWarning
 from support import BASE_ANSWERS, TEMPLATE_DIR, Render
 
 
@@ -27,14 +27,26 @@ def render(tmp_path: Path) -> Render:
 
     def _render(answers: dict[str, object], *, run_tasks: bool = False) -> Path:
         dst = tmp_path / "generated"
-        # `vcs_ref="HEAD"` is what makes an uncommitted template edit testable at all: copier
-        # commits the dirty tree into its own clone and warns. That warning is the fixture working
-        # as intended, and the shipped pytest.ini's `filterwarnings = error` would otherwise turn
-        # every render into a failure the moment anyone touches template/ — i.e. exactly while the
-        # suite is most worth running. Scoped to this call rather than added to the shared
-        # pytest.ini, which ships to consumers that have never heard of copier.
+        # `vcs_ref="HEAD"` is what makes the template testable as it stands, and copier warns about
+        # the clone it makes to do that — never about the render, which succeeds either way. Both
+        # warnings it can raise here are that, and the shipped pytest.ini's `filterwarnings = error`
+        # turns either into 21 failures:
+        #
+        #   DirtyLocalWarning   locally, the moment anyone edits template/ — i.e. exactly when the
+        #                       suite is worth running.
+        #   ShallowCloneWarning in CI, where actions/checkout clones at depth 1. A full clone would
+        #                       silence it, but ci.yml is byte-identical to the template's copy by
+        #                       design (test_repo_sync.py enforces it) and a generated repo has no
+        #                       copier in its tests, so the fix belongs here rather than there.
+        #
+        # The pair is why a green local run did not predict CI: locally the tree is full but dirty,
+        # in CI it is clean but shallow, and each raises only its own half.
+        #
+        # Scoped to this call rather than added to the shared pytest.ini, which ships to consumers
+        # that have never heard of copier.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DirtyLocalWarning)
+            warnings.simplefilter("ignore", ShallowCloneWarning)
             _ = copier.run_copy(
                 str(TEMPLATE_DIR),
                 str(dst),
