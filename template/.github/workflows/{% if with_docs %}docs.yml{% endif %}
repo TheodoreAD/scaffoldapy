@@ -4,13 +4,23 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Scoped to the one job that needs it, rather than inherited from the workflow-level grant
+    # above: actions-gh-pages pushes the built site to the gh-pages branch.
     permissions:
       contents: write
     steps:
+      # persist-credentials: false is safe even though this job publishes — actions-gh-pages pushes
+      # with the token handed to it below, never with the credentials the checkout would otherwise
+      # leave in .git/config. zizmor's artipacked audit runs in the generated repo's own gate.
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: astral-sh/setup-uv@v9.0.0
       - run: ./bootstrap-repo-tasks.sh
       - run: inv dev-env.setup
