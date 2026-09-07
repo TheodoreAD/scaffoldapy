@@ -14,7 +14,8 @@ from typing import cast
 import copier
 import pytest
 import yaml
-from support import BASE_ANSWERS, COMBINATIONS, TEMPLATE_DIR, Render, package_name_of
+
+from tests.support import BASE_ANSWERS, COMBINATIONS, TEMPLATE_DIR, Render, package_name_of
 
 
 @pytest.mark.parametrize("answers", COMBINATIONS.values(), ids=COMBINATIONS.keys())

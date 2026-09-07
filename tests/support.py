@@ -10,7 +10,12 @@ shadow tests/conftest.py for that tier only (silent, direction-dependent ImportE
 repo has a *second* tests/conftest.py under template/ that wins outright whenever pytest falls back
 to searching from the working directory — which is exactly what the shipped
 `testpaths = tests/unit` triggers in a repo that hasn't split its tests yet. A distinct module name
-has neither problem."""
+has neither problem.
+
+Imported as `tests.support`, never bare. tests/ is a package, so the name resolves by namespace
+rather than by this file's directory sitting at the front of sys.path — where a top-level module
+named `support`, close to the most collidable name available, would have shadowed anything else by
+that name for the whole session. See tests/__init__.py."""
 
 from pathlib import Path
 from typing import Protocol

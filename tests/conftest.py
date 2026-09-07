@@ -11,7 +11,8 @@ from pathlib import Path
 import copier
 import pytest
 from copier.errors import DirtyLocalWarning, ShallowCloneWarning
-from support import BASE_ANSWERS, TEMPLATE_DIR, Render
+
+from tests.support import BASE_ANSWERS, TEMPLATE_DIR, Render
 
 
 @pytest.fixture

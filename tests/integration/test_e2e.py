@@ -13,7 +13,8 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from support import COMBINATIONS, Render
+
+from tests.support import COMBINATIONS, Render
 
 
 def run_in_generated_repo(dst: Path, *args: str) -> subprocess.CompletedProcess[str]:
