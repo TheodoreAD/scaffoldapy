@@ -7,9 +7,10 @@ updated: 2026-09-08
 
 ## Context
 
-Split out of `plans/2026-08-29-action-version-drift.md` when that landed, because it was never an
-action-pin question and kept a finished piece of work looking open. Both that plan and the
-2026-08-27 one it merged raised it; the earlier said outright that it "may deserve its own plan".
+Split out of the now-retired `plans/2026-08-29-action-version-drift.md` when that landed, because it
+was never an action-pin question and kept a finished piece of work looking open. Both that plan and
+the 2026-08-27 one it merged raised it; the earlier said outright that it "may deserve its own
+plan". `plans.py archive --file 2026-08-29-action-version-drift.md` reads either back.
 
 Every fix made here reaches only repos generated after it. An existing generated repo picks it up
 through `copier update` and through nothing else — and nothing prompts anyone to run one. The
