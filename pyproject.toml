@@ -24,6 +24,8 @@ dev = [
   "pytest-cov",
   "zizmor",
   "hadolint-py",
+  "pytest-socket",
+  "pytest-timeout",
 ]
 
 [tool.uv]
