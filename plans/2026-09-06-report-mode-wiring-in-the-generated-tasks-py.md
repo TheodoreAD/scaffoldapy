@@ -1,5 +1,5 @@
 ---
-status: blocked on the globally installed repo-tasks predating runner.py
+status: blocked on a repo-tasks release carrying runner.py
 updated: 2026-09-08
 source_repo: github.com-personal/repo-tasks
 source_session: a3c12c26-55b9-4ed1-941f-42898b4bf565.jsonl
@@ -98,17 +98,51 @@ pass. ~~Unconditional or a copier question?~~ Moot. ~~Does it build its own Coll
 
 ## Recommended direction
 
-Nothing to build in the template. What is left is one check, and it is worth stating plainly rather
-than folding into a green result:
+Nothing to build in the template. The one check that was left is below, and it has now been run.
 
-[UNVERIFIED: report mode has never actually been observed in a generated repo, and cannot be today —
-the globally installed `repo-tasks` is v0.2.0, which ships no `runner.py` at all, so
-`from repo_tasks import ns` currently imports a namespace with no reporting runner on it. The
-mechanism above is read from the source of the `repo-tasks` checkout, not from a run. After the next
-`inv repo-tasks.update`, `REPO_TASKS_RUN_REPORT=1 inv quality.check` in this repo — which imports
-`ns` exactly the way a generated repo does — is the one-command check, and a rendered repo asserting
-its own report-mode state is the e2e assertion this plan's third direction asked for. Neither is
-worth doing before the tool moves.]
+## Verified 2026-09-08, and the blocker is not what this plan first said it was
+
+**The mechanism works, through the exact import a generated repo uses.** `REPO_TASKS_RUN_REPORT` is
+already exported in every agent shell here, so no variable had to be set:
+
+```
+$ /path/to/repo-tasks/.venv/bin/inv quality.check     # this repo, whose tasks.py is `from repo_tasks import ns`
+ruff check . | ok | 0.0s | All checks passed!
+basedpyright | ok | 1.4s | 0 errors, 0 warnings, 0 notes
+pytest | ok | 8.1s | 29 passed in 7.54s
+quality.check | PASS | 10 steps | 9.7s
+```
+
+Folded lines and a verdict, with nothing wired anywhere. The same conclusion in one call, without
+running a gate at all:
+
+```
+$ .../repo-tasks/.venv/bin/python -c "import repo_tasks; print(repo_tasks.ns.configuration()['runners'])"
+{'local': <class 'repo_tasks.runner.ReportingLocal'>}
+```
+
+So a generated repo needs no `runner.configure` call, and this plan's premise is closed rather than
+merely doubted.
+
+[PITFALL: **`inv repo-tasks.update` does not deliver this, and an earlier draft of this plan said it
+would.** That task installs the latest **tagged release**, falling back to the default branch only
+when no tag exists — and `v0.2.0` (`cef6894`) is **116 commits** behind `main`, while `runner.py`
+was created by `d322392` on 2026-09-05, after the tag. Running the update on 2026-09-08 reinstalled
+v0.2.0 and changed nothing. The block is a `repo-tasks` **release**, not a stale machine, and no
+amount of updating fixes it.]
+
+[PITFALL: **a generated repo is further from this than the repos that generate it.**
+`selfinstall.stamp` writes a generated repo's `bootstrap-repo-tasks.sh` pinned to the current tag —
+observed in this session's renders:
+`[repo-tasks.stamp] wrote bootstrap-repo-tasks.sh, pinned to
+v0.2.0`. This repo's own copy is still
+unpinned and tracks `main`, because nothing re-stamps it. So `scaffoldapy`'s CI runs `main` while
+everything it generates runs the tag, and report mode reaches generated repos only on a release.]
+
+[UNVERIFIED: a rendered repo asserting its own report-mode state — direction 3 below, the e2e
+assertion. It cannot be written yet and would fail if it were: the e2e renders against the global
+tool, which is the tag. Worth adding in the same change that takes the release, so the assertion and
+the thing it asserts arrive together.]
 
 The `DEFERRED` below stands unchanged, and this outcome does not touch it.
 
