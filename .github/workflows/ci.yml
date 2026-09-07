@@ -7,8 +7,10 @@ on:
 
 # Least privilege: nothing here writes anything back to the repo, and the default token grant is
 # broader than that. persist-credentials: false for the same reason — this job does not push, and
-# the default leaves the job's token in .git/config for every later step to read. Both are what
-# zizmor's excessive-permissions and artipacked audits ask for, and both run in `inv quality.check`.
+# the default leaves the job's token on disk for every later step to read (through checkout v5 that
+# meant .git/config; v6 moved it to a separate file, and the input is unaffected either way). Both
+# are what zizmor's excessive-permissions and artipacked audits ask for, and both run in
+# `inv quality.check`.
 permissions:
   contents: read
 
@@ -16,7 +18,7 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@v9.0.0

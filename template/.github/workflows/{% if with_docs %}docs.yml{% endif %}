@@ -17,8 +17,9 @@ jobs:
     steps:
       # persist-credentials: false is safe even though this job publishes — actions-gh-pages pushes
       # with the token handed to it below, never with the credentials the checkout would otherwise
-      # leave in .git/config. zizmor's artipacked audit runs in the generated repo's own gate.
-      - uses: actions/checkout@v4
+      # leave behind (.git/config through checkout v5, a separate file from v6). zizmor's artipacked
+      # audit runs in the generated repo's own gate.
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@v9.0.0
