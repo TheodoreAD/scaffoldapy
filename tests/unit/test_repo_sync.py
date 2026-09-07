@@ -18,6 +18,7 @@ IDENTICAL_FILES = [
     "LICENSE",
     ".envrc",
     ".github/workflows/ci.yml",
+    ".github/workflows/security.yml",
     "tasks.py",
 ]
 

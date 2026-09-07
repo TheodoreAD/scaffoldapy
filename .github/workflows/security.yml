@@ -1,0 +1,38 @@
+name: Security
+
+# A separate workflow from CI on purpose: a failure here means this project's dependency set has a
+# known advisory, not that its code is wrong. GitHub gives every workflow its own check run, name
+# and badge, so a green CI beside a red Security reads as exactly that, with nothing to configure.
+# Folding the audit into ci.yml would lose the distinction and put a network call inside the
+# workflow whose whole point is being offline and deterministic.
+#
+# The audit is defined once for the whole family and called rather than copied, so there is no
+# per-repo drift for anyone to track. The job installs nothing — `uv audit --locked` reads uv.lock
+# and queries OSV — so the same call works whatever this project's interface and dependencies are.
+# The file it calls lives in a public repo, which is what makes this work from a private one: on
+# Free, Pro and Team plans a reusable workflow must live in the same repository or a public one.
+#
+# Push-triggered, deliberately not scheduled. A red scheduled run needs a reader, and a project with
+# no reviewers has none — an unwatched scheduled job looks like coverage without being it. The gap
+# is real and accepted: an advisory landing in a week with no pushes is not seen until the next one.
+# A project that grows a review habit is the one that should add a schedule here.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Pinned to a commit, not @main: a moving ref would change this project's audit the moment the
+  # upstream default branch moved, in a repo nobody is touching. The trailing comment is the
+  # readable version — repo-tasks publishes no releases, so the date is what there is to name.
+  # Bump both together when that workflow changes.
+  audit:
+    uses: TheodoreAD/repo-tasks/.github/workflows/security-reusable.yml@d17c60715e2a7fd63cf22874255c6923277b7859 # 2026-08-31

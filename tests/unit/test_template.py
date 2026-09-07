@@ -5,6 +5,7 @@ nothing beyond the dev dependency group — that is what keeps it in the unit ti
 The one check that renders for real, _tasks and all, is
 test_generated_repo_passes_quality_check_out_of_the_box in tests/integration/test_e2e.py."""
 
+import re
 import shutil
 import subprocess
 import tomllib
@@ -38,6 +39,7 @@ def test_generates_valid_pyproject_and_config(render: Render, answers: dict[str,
     assert (dst / "README.md").exists()
     assert (dst / "LICENSE").exists()
     assert (dst / ".github" / "workflows" / "ci.yml").exists()
+    assert (dst / ".github" / "workflows" / "security.yml").exists()
 
     # PEP 561 marker: without it a consumer installing this package (`uv add git+...`) sees it as
     # untyped, however fully annotated its source actually is.
@@ -135,6 +137,20 @@ def test_library_seeds_a_smoke_test(render: Render) -> None:
     fallback, which is not the layout a fresh repo should start life in."""
     dst = render(COMBINATIONS["library"])
     assert (dst / "tests" / "unit" / "test_example_pkg.py").exists()
+
+
+def test_security_workflow_calls_the_family_audit_at_a_pinned_sha(render: Render) -> None:
+    """The audit is one reusable workflow for the whole family, called rather than copied, so the
+    generated file is a caller and nothing else. Pinned to a commit on purpose: a `@main` ref would
+    change a generated repo's audit whenever repo-tasks' default branch moved, in repos nobody is
+    touching. The assertion is on the pin's shape rather than on a specific commit — bumping it is
+    expected, dropping it for a moving ref is the regression."""
+    workflow = (render(COMBINATIONS["library"]) / ".github" / "workflows" / "security.yml").read_text()
+    assert "TheodoreAD/repo-tasks/.github/workflows/security-reusable.yml@" in workflow
+    assert re.search(r"security-reusable\.yml@[0-9a-f]{40} # \d{4}-\d{2}-\d{2}\n", workflow), (
+        "the reusable audit must be pinned to a 40-character commit SHA with the date it names as a "
+        "trailing comment — the shape `inv ci.check-actions` reads a version out of"
+    )
 
 
 def test_with_docs_off_by_default_seeds_no_docs_site(render: Render) -> None:
