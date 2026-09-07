@@ -1,6 +1,6 @@
 ---
-status: idea
-updated: 2026-09-07
+status: landed
+updated: 2026-09-08
 source_repo: github.com-personal/repo-tasks
 source_session: 52905ee0-50ff-4376-bd19-5ab4d9ca0a24.jsonl
 source_moment: 2026-09-07T11:15:05Z
@@ -36,15 +36,22 @@ tests tier, where `reportAny` is not. 37 errors in one file, closed with `cast(C
 Measured for this repo before filing: **no file here indexes `.collections[`**, and 6 lines carry a
 `pyright: ignore`.
 
-## Open questions
+## Questions, as answered
 
-[NEEDS CLARIFICATION: does a freshly generated project's first `inv quality.precommit` now resolve
-0.2.0 by itself? The dependency is an unpinned `@ git+` spec in the manifest `repo-tasks` splices,
-so a new project's first lock should take whatever `main` holds — worth confirming once against a
-real generation rather than assuming, since that is the path most consumers arrive on.]
+~~Does a freshly generated project resolve the current stubs by itself?~~ **Yes**, and it needed no
+throwaway generation to find out: this session's end-to-end tier renders ten real projects, and
+every one installed `invoke-stubs==0.3.0 (from git+…@f70ff01e)`. The unpinned `@ git+` spec in the
+manifest `repo-tasks` splices does what it looked like it would do — a new project's first lock
+takes whatever `main` holds. Nothing here is owed on the generated side.
 
-## Recommended direction
+## Landed 2026-09-08
 
-`inv deps.lock --package invoke-stubs`, `inv venv.sync`, `inv quality.precommit`, commit the lock
-bump. Then generate one throwaway project and check its lock names `13bcc9e` or later, which is the
-half this repo actually owns.
+`inv deps.lock --package invoke-stubs` took `ad052ca` (0.1.0) straight to `f70ff01` (0.3.0),
+skipping 0.2.0 and both halves of the cost `repo-tasks` paid for it. `inv quality.precommit` green
+with **no source change at all** — the measurement filed with this plan held: no file here indexes
+`.collections[`, so the `Any` that 0.2.0 made honest never surfaces, and there were no casts to add
+under 0.2.0 or remove under 0.3.0.
+
+The six `pyright: ignore` lines this repo carries were unaffected;
+`reportUnnecessaryTypeIgnoreComment` is on, so a stub bump that made one redundant would have failed
+the gate rather than gone unnoticed.

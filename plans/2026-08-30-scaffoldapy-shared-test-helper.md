@@ -1,6 +1,6 @@
 ---
-status: idea
-updated: 2026-08-30
+status: landed
+updated: 2026-09-08
 ---
 
 # `tests/support.py` is the family's only bare-import test helper
@@ -78,17 +78,16 @@ entries pinning where dprint's 100-column reflow wraps interpolated `package_nam
 silently resolved to the wrong module would not fail loudly — it would run a different, smaller
 matrix.
 
-[NEEDS CLARIFICATION: or package `tests/` in this repo alone — add `__init__.py`, import
-`from tests.support import …`, and take `extraPaths: ["."]` in this repo's `pyrightconfig.json`
-only? That is the pytest-recommended arrangement for `prepend` mode and it fixes the shadowing
-properly. But `pyrightconfig.json` is pulled from `repo-tasks` by `configs.pull`, so a local
-`extraPaths` is per-repo drift in a file whose whole design is that it does not drift — which is
-exactly the coupling that sent this question to `repo-tasks` in the first place.]
+~~Or package `tests/` in this repo alone, and take a local `extraPaths`?~~ **Packaged, and the
+`extraPaths` was never local.** The objection this question raised — per-repo drift in a file whose
+design is that it does not drift — died when `repo-tasks` put `extraPaths: ["."]` in the shipped
+`pyrightconfig.json` on 2026-09-04. It arrives here through `configs.pull` like everything else in
+that file.
 
-[NEEDS CLARIFICATION: or leave it. Nothing is broken, the collision is hypothetical, and a rename
-from `support.py` to something unlikely to collide (`_scaffoldapy_test_support.py`) buys most of the
-safety for one `git mv` and four import lines. Cheapest of the three, and it neither adopts nor
-forecloses the others.]
+~~Or leave it, with a rename as the cheap mitigation?~~ **No.** The collision stayed hypothetical
+right up to the fix, which is the argument for leaving it and also the reason it was worth closing:
+the failure mode is an import resolving to the wrong module rather than an error, in the module that
+holds `COMBINATIONS`, where a wrong resolution runs a smaller matrix silently.
 
 ## Superseded 2026-09-04: the family decided, and it decided packaging
 
@@ -131,7 +130,23 @@ template generates is a separate question, owned by this repo's own
 proceed. Two trees, two changes, and conflating them is how the template acquires a file nobody
 chose.]
 
-Whichever way it goes, `plans/2026-08-30-generated-test-layout.md` can stop waiting on `repo-tasks`:
-the family-wide change is not happening on the strength of this evidence, so the generated
-`AGENTS.md` should document the basename rule as the property of the default import mode that it
-actually is.
+`plans/2026-08-30-generated-test-layout.md` can stop waiting on `repo-tasks` either way. This
+paragraph used to end "the family-wide change is not happening, so the generated `AGENTS.md` should
+document the basename rule" — written before 2026-09-04, and the opposite of what happened. The
+family did take packaging, so a generated repo will have no basename rule to document; what that
+plan owes instead is one line saying `tests/` is a package and why.
+
+## Landed 2026-09-08
+
+Two commits, the config pull separately from the packaging, because the pull carried twelve days of
+unrelated canonical drift with it — `pythonVersion` derived per consumer, `target-version` dropped
+from `ruff.toml`, `filterwarnings = error` and its two ignores, `pytest-socket` and `pytest-timeout`
+spliced into the dev group. Green under all of it with no source change, which is what says the pull
+was owed rather than risky.
+
+The packaging itself is three `__init__.py` files and three import lines, plus a paragraph in
+`support.py`'s docstring saying it is imported as `tests.support` and why. Verified where this plan
+asked, since a moved import is exactly what that assertion catches: the end-to-end tier still
+collects and renders **every** `COMBINATIONS` entry — 10 collected, 9 green, the tenth red before
+this work started and for an unrelated upstream reason (starlette 1.6.0 against the shipped
+`filterwarnings = error`, filed for `repo-tasks` the same day).

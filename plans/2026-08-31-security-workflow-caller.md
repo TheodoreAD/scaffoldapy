@@ -1,6 +1,6 @@
 ---
-status: idea
-updated: 2026-08-31
+status: landed
+updated: 2026-09-08
 ---
 
 # Generated repos should call the family's security workflow
@@ -46,7 +46,9 @@ jobs:
 ```
 
 `repo-tasks` itself uses the local `./.github/workflows/security-reusable.yml` form because it hosts
-the file; every other repo uses the `TheodoreAD/…@main` form above.
+the file; every other repo uses the `TheodoreAD/…@<sha>` form above. That repo's own `security.yml`
+comment still describes the other repos as calling it `@main` — written before the pinning call of
+2026-09-04, and not what this template emits.
 
 ## Why it is shaped this way
 
@@ -81,25 +83,42 @@ public one — so a public host is callable from a private generated repo, while
 private repo would need Enterprise. A generated repo is frequently private, so this is the property
 that makes the caller work at all, and it is not obvious from looking at either file.]
 
-## Open questions
+## Questions, as answered
 
-[NEEDS CLARIFICATION: does the caller go in unconditionally, or behind a copier question? The
-template's `.github/workflows/` already conditions `docs.yml` on `with_docs`, so there is precedent
-for optional workflows. Against a question: the audit is not a feature, it costs nothing, and every
-generated repo has a `uv.lock` — an option here would mostly produce repos differing for no reason,
-which is the exact problem this design removes. Probably unconditional, but this repo's own
-convention on when a file earns a question should decide it.]
+~~Unconditional, or behind a copier question?~~ **Unconditional.** The precedent that looked
+relevant — `docs.yml` conditioned on `with_docs` — cuts the other way once stated: a docs site is a
+feature a project either wants or does not, while the audit is a check that costs nothing and every
+generated repo has a `uv.lock` for. A question here would produce repos differing for no reason,
+which is the drift the single shared definition exists to remove.
 
-[NEEDS CLARIFICATION: does `COMBINATIONS` need to grow for this? The end-to-end test renders each
-combination and runs its quality gate; a new always-present workflow file would be covered by the
-existing combinations rather than needing new ones, but the generated workflow set is exactly the
-kind of thing `test_template.py` asserts on, so an assertion probably wants adding rather than a
-combination.]
+~~Does `COMBINATIONS` need to grow?~~ **No, an assertion instead**, exactly as the question guessed.
+The file never varies by interface, so a new combination would render the same six lines a tenth
+time. Two assertions went into `test_template.py`: the file lands in every combination, and its
+`uses:` is a 40-hex SHA with a trailing date comment. The second is the one worth having — it
+asserts the pin's _shape_ rather than a commit, so bumping the pin is free and replacing it with
+`@main` is caught.
 
-[NEEDS CLARIFICATION: should the generated repo's `AGENTS.md` mention it? A generated repo's own
-agent instructions describe how to develop and test it. "A red `Security` check means a dependency
-advisory, not broken code, and there is no suppression list" is arguably a thing a future agent in
-that repo needs told, since the natural reaction to a red check is to look for a code defect.]
+~~Should the generated `AGENTS.md` mention it?~~ **Yes**, and it says the thing the question named:
+a red `Security` is an advisory against `uv.lock`, not a defect in the code, the fix is a version
+bump, and there is no suppression list. The push trigger is stated with it, because an advisory
+landing in a quiet week is invisible until the next push and that is the property that makes the
+check's silence weaker than it looks.
+
+## Landed 2026-09-08
+
+`template/.github/workflows/security.yml`, and this repo's own byte-identical copy alongside it —
+added to `test_repo_sync.py`'s `IDENTICAL_FILES` on the same argument as `ci.yml`: this repo should
+run what it ships. It is the family's **first** caller; `repo-tasks` hosts the reusable workflow and
+calls its own copy by path, and no other repo had one yet, so the pin form was this repo's to set.
+
+Pinned to `d17c607`, re-resolved against the remote rather than copied from this plan, and confirmed
+to be the only commit that has ever touched `security-reusable.yml` — so the pin is both current and
+the file's whole history. It was born after the family's action bump, so the pinned copy already
+runs `checkout@v7` and `setup-uv@v10.0.1`: pinning does not reintroduce the Node 20 deprecation that
+the same session removed from this repo's own workflows.
+
+Verified through the e2e tier: every rendered repo creates the file, and each one's own
+`inv quality.check` — actionlint and zizmor included — passes on it.
 
 ## Recommended direction
 

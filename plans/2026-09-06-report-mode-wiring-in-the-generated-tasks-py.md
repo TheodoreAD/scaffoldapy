@@ -1,6 +1,6 @@
 ---
-status: idea
-updated: 2026-09-06
+status: blocked on the globally installed repo-tasks predating runner.py
+updated: 2026-09-08
 source_repo: github.com-personal/repo-tasks
 source_session: a3c12c26-55b9-4ed1-941f-42898b4bf565.jsonl
 source_moment: 2026-09-05T21:17:08Z
@@ -33,6 +33,10 @@ prints stock invoke output.
 **This template generates the second kind.** Every repo it produces is therefore in that state at
 birth, and the gap is silent in both directions: no warning, no probe, and no way to tell "the
 variable is unset" from "the variable is set and unreachable" by reading the output.
+
+> **Wrong, and this sentence is the whole reason the plan exists.** It generates the first kind. See
+> "The premise is false" below; the paragraph is left standing because what it claims is what got
+> checked.
 
 `repo-tasks` shipped the consumer-side call on 2026-09-06:
 
@@ -67,40 +71,46 @@ Two sessions, in order.
 `rg -n 'runner.configure' tasks/` returns nothing. Both are true of what this template generates
 today.
 
-## Open questions
+## The premise is false, checked 2026-09-08
 
-- [NEEDS CLARIFICATION: should the generated `tasks.py` carry `runner.configure(namespace)` by
-  default? **For**: this template is the only place that stops the population growing — one repo was
-  noticed and fixed by hand, and the generator keeps producing more; a generated repo's owner has no
-  reason to suspect the mode exists, so "documented" reaches nobody. **Against**: it puts an
-  agent-oriented departure into every generated repo's `tasks.py`, where a human reader meets it
-  first — which is the same rule-of-least-surprise objection that inverted `repo-tasks`' design in
-  the first place (its own fold-by-default default was reverted for exactly this reason on
-  2026-09-05, hours after landing).]
+**This template does not generate a `tasks.py` that hand-builds a `Collection`.** It generates
+exactly nine lines, three of which are the import:
 
-- [NEEDS CLARIFICATION: if yes, is it unconditional or a copier question? A question keeps the
-  generated file honest for a repo whose owner does not want it, at the cost of one more prompt in a
-  questionnaire that already has several — and `~/AGENTS.md`'s generator guidance is "minimal
-  necessary prompts, skip what doesn't apply". Unconditional-with-a-comment is the cheaper shape if
-  the answer to the first question is yes, since the call is a no-op when the variable is unset.]
+```python
+from repo_tasks import ns  # pyright: ignore[reportMissingImports, reportUnknownVariableType]
 
-- [NEEDS CLARIFICATION: does the generated `tasks.py` build its own `Collection` for a reason, or
-  could it be `from repo_tasks import ns`? If the latter is viable the whole question dissolves —
-  `ns` is configured at import and nothing needs generating. Worth answering first, because it is
-  the only answer that removes the decision rather than making it.]
+__all__ = ["ns"]
+```
+
+That is `template/tasks.py`, byte-identical to this repo's own root copy and guarded by
+`tests/unit/test_repo_sync.py`. `repo_tasks/__init__.py` ends with `runner.configure(ns)`, so every
+generated repo takes report mode with the object it imports, and the plan's third question — the one
+it named as the only answer that removes the decision rather than making it — is answered by the
+file that already exists. The first two questions never arise.
+
+The plan was written from a repro run in `repo-tasks` and in `power-user-linux-setup`, both of which
+**do** hand-build a root `Collection`. Neither is what this repo generates, and the "true of the
+tool that found it, false of the tool that has to change" shape is one the family has recorded
+before.
+
+~~Should the generated `tasks.py` carry the call?~~ It cannot: there is no namespace of its own to
+pass. ~~Unconditional or a copier question?~~ Moot. ~~Does it build its own Collection?~~ No.
 
 ## Recommended direction
 
-1. **Answer the third question first.** If the generated `tasks.py` hand-builds its Collection only
-   to nest a couple of project-local tasks, `from repo_tasks import ns` plus
-   `ns.add_collection(...)` may reach the same place with the configure already done. That is the
-   outcome with no departure to justify to a human reader.
-2. If it genuinely needs its own root Collection, take the first question deliberately rather than
-   by default. Both sides are real and the trade is between a population that silently gets nothing
-   and a line in every generated repo that a human meets before an agent does.
-3. Either way, add the check to the e2e tier while it is in hand: this repo's integration tier is
-   the only thing in the family that tests what the template generates, so a rendered repo asserting
-   its own report-mode state is the only place that assertion can live.
+Nothing to build in the template. What is left is one check, and it is worth stating plainly rather
+than folding into a green result:
+
+[UNVERIFIED: report mode has never actually been observed in a generated repo, and cannot be today —
+the globally installed `repo-tasks` is v0.2.0, which ships no `runner.py` at all, so
+`from repo_tasks import ns` currently imports a namespace with no reporting runner on it. The
+mechanism above is read from the source of the `repo-tasks` checkout, not from a run. After the next
+`inv repo-tasks.update`, `REPO_TASKS_RUN_REPORT=1 inv quality.check` in this repo — which imports
+`ns` exactly the way a generated repo does — is the one-command check, and a rendered repo asserting
+its own report-mode state is the e2e assertion this plan's third direction asked for. Neither is
+worth doing before the tool moves.]
+
+The `DEFERRED` below stands unchanged, and this outcome does not touch it.
 
 [DEFERRED: nothing here measures whether report mode changes anything about how agent sessions read
 a gate. The property it was built for — a piped `| tail -3` on a red run ending with the failing

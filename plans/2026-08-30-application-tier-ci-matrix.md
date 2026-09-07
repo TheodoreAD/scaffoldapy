@@ -1,6 +1,6 @@
 ---
 status: idea
-updated: 2026-08-30
+updated: 2026-09-08
 ---
 
 # Does an application-tier repo get the same Python matrix as a library-tier one?
@@ -31,6 +31,35 @@ An application controls its own runtime. It declares 3.14, deploys 3.14, and eve
 top one is testing a configuration that will never exist. So the same template producing both tiers
 has to decide what each gets, and the question was never asked when the matrix was written — it was
 written for a library and inherited by anything generated from the same shape.
+
+## Correction 2026-09-08: there is no matrix here, and no tier question either
+
+Checked rather than assumed, because the framing above turns on an inheritance that did not happen.
+`template/.github/workflows/ci.yml` has **one job**, `quality`, on `ubuntu-latest`, with no
+`strategy.matrix` and no `python-version` input to `setup-uv` — so every generated repo tests on
+whichever interpreter uv picks, one of them, whatever it declares. `repo-tasks`' four-version matrix
+was never copied here.
+
+And nothing asks about the tier: `template/pyproject.toml.jinja` hardcodes
+`requires-python =
+">=3.11"` for every interface, and `copier.yml` has no question about a Python
+version at all. So a generated application declares a floor three versions below what it will deploy
+on, and a generated library declares a floor nothing tests against.
+
+That makes this two questions where the plan saw one, and the second is the one with a live cost:
+
+- **The matrix**: not "does an application get a smaller one" but "does anything get one at all". A
+  generated repo today proves nothing about its declared floor.
+- **`requires-python`**: a single hardcoded value across five interfaces, which the plan's own
+  household rule says should differ by tier. This is also the field everything else now derives from
+  — since `configs.pull` reads it for `pyrightconfig.json`'s `pythonVersion` and ruff infers its
+  target from it, a wrong value here is silently wrong in three places rather than one, and this
+  repo saw exactly that on 2026-09-08 when its own pull emitted `"pythonVersion": "3.11"`.
+
+The recommended direction below survives the correction and is strengthened by it: `requires-python`
+is the one declaration, and anything else that needs a version follows it. What changes is the
+starting point — the work is to make that field per-tier and give the generated workflow a matrix
+derived from it, not to trim a matrix that exists.
 
 ## Open questions
 
