@@ -1,6 +1,6 @@
 ---
-status: idea
-updated: 2026-08-29
+status: in-progress
+updated: 2026-09-08
 ---
 
 # GitHub Action versions have drifted, and nothing in this family watches them
@@ -48,37 +48,73 @@ implied and never built: having declined the bot, nothing at all watches these v
 first signal is a deprecation annotation on a green run — which is exactly the kind of output nobody
 reads, because the run passed.
 
-## Open questions
+## Questions, as answered
 
-[NEEDS CLARIFICATION: which major to land on. `v7` is current and shares the node24 runtime with
-`v5` and `v6`, so the deprecation is answered identically by any of the three and the choice is
-about how often the family wants to move. Worth reading v5→v6 and v6→v7 release notes for breaking
-changes before picking — a checkout major has changed default behaviour before, and this template's
-copy is inherited unreviewed by every generated repo.]
+~~Which major to land on?~~ **`v7`**, taking the family's reading rather than re-deriving it.
+`repo-tasks` checked each major against these repos on 2026-08-29 and `power-user-linux-setup`
+re-checked it on 2026-09-04: v5's minimum runner v2.327.1 is a self-hosted concern and every job
+here is `ubuntu-latest`; v6 moves where credentials are persisted, not the `persist-credentials`
+input, which stays `false` at all three sites here; v7 blocks checking out a fork PR under
+`pull_request_target` and `workflow_run`, and no workflow here uses either trigger.
 
-[NEEDS CLARIFICATION: whether `setup-uv` moves in the same pass. It emits no warning, so it is not
-urgent, but leaving it a major behind reproduces the same drift with no trigger to catch it later.
-Against bundling: two version bumps in one change makes a CI regression ambiguous.]
+~~Does `setup-uv` move in the same pass?~~ **Same pass, separate commit** — which is what the
+"regression is ambiguous" objection actually asks for. `v9.0.0` → `v10.0.1`. v10 disables the cache
+under `enable-cache: auto` for `pull_request_target`, `workflow_run` and `release`; the generated CI
+workflow triggers on `push` and `pull_request`, the generated docs workflow on `push` alone.
 
-[NEEDS CLARIFICATION: what replaces dependabot, given the family declined it. Options seen so far,
-none evaluated: a periodic task in `repo-tasks`' quality namespace that compares each `uses:` pin
-against the upstream latest and reports rather than edits; a scheduled workflow doing the same; or
-accepting manual review and giving it a trigger, e.g. a line in this repo's release checklist. The
-reporting shape fits the family's stated objection better than the PR-stream shape does, since the
-objection was to standing PRs rather than to knowing.]
+~~What replaces dependabot?~~ **Already built, in `repo-tasks`, and used here.** `ci.check-actions`
+asks each action's release feed and compares at the precision the pin states, report-only;
+`ci.status` prints a run's annotations rather than only its conclusion. Both arrived 2026-08-29 and
+reach every consumer through the tool rather than through a config, so nothing about this repo had
+to be built. This repo publishes them already — `tasks.py` is `from repo_tasks import ns` — and
+`inv ci.check-actions` is what found the two pins below rather than a reading of the workflow files.
 
-[NEEDS CLARIFICATION: how the bump reaches already-generated repos. `ci.yml` claims byte-identity
-with this template, so a template change makes every existing copy diverge until each is pulled
-forward by hand — `ingesta` re-established that identity on 2026-08-29 and would break it again the
-moment this lands. Whether that is a `copier update` per repo, or a one-line manual edit each, is
-the same unanswered question the byte-identity claim always carried.]
+**`peaceiris/actions-gh-pages@v4` is current** and stays: latest is `v4.1.0`, and a bare major pin
+is current at the precision it states. It is invisible to
+`inv ci.check-actions --path
+template/.github/workflows`, which reads only files ending `.yml` — the
+generated docs workflow's name is a Jinja conditional, so it was checked by hand.
 
-## Recommended direction
+## Landed 2026-09-07
 
-Rough, and the ordering matters more than the choices.
+| action               | sites | was      | now       | annotated by GitHub? |
+| -------------------- | ----- | -------- | --------- | -------------------- |
+| `actions/checkout`   | 3     | `v4`     | `v7`      | yes                  |
+| `astral-sh/setup-uv` | 3     | `v9.0.0` | `v10.0.1` | no                   |
 
-1. Settle the target major, and change `template/.github/workflows/` plus this repo's own
-   `.github/workflows/ci.yml` in one commit, so the template and its own dogfooding stay in step.
-2. Only then sweep the sibling repos, one commit each, so a regression is attributable.
-3. Treat the third open question as the real deliverable. Bumping fourteen pins once and adding no
-   trigger schedules this same plan for whenever the next runtime is deprecated.
+Three sites each: this repo's own `ci.yml`, the template's byte-identical copy, and the template's
+conditional `docs.yml`. Two commits, split so a regression is attributable to one bump — and the
+split is what the annotated/not-annotated column makes worth keeping: the second bump was invisible
+to every signal GitHub emits.
+
+**The comment fix rode along with the checkout bump, deliberately.** Both `ci.yml` copies explained
+`persist-credentials: false` by saying the token is otherwise left "in `.git/config`" — true through
+v5, false from v6, and the template's copy ships that sentence into every generated repo. Nothing in
+actionlint, zizmor or the suite reads English, so a bump on its own would have left it standing and
+wrong. Flagged in advance by `repo-tasks`' own plan, which hit the same sentence in a sibling repo.
+
+`inv test.all` after both: 9 of 10 e2e combinations green, `web_service-no-fetch` red on an
+unrelated upstream defect filed for `repo-tasks` the same day (starlette 1.6.0 tripping the shipped
+`filterwarnings = error` through a deprecated anyio alias). Not caused by, and not affected by, this
+change.
+
+[UNVERIFIED: the annotation is gone. A green run proves nothing here — green is what it was all
+along — so what closes this is `inv ci.status` on the first run after these commits are pushed,
+reading annotations rather than the conclusion. Silence there is the result, and it must be checked
+against a call known to work: `[]` means both "clean" and "the call failed".]
+
+## Merged in: `2026-08-27-checkout-action-node20-deprecation.md`
+
+The same subject, filed two days earlier and narrower — it had the annotation, the two line numbers
+and the byte-identity note, and its recommended direction ("bump both pins, let `inv test.all` run
+the integration tier") is what happened. Nothing in it survives that is not above. Its one open
+question does not die with it, though: see below.
+
+## What is left, and it is not about actions
+
+How a template fix reaches already-generated repos is the one question this work does not settle,
+and it was never an action-pin question: a change here makes every existing generated copy diverge
+until someone pulls it forward, and nothing prompts them to. Both merged plans raised it, and the
+2026-08-27 one said outright that it "may deserve its own plan". It has one now —
+`plans/2026-09-08-reaching-already-generated-repos.md` — rather than being carried here, where it
+would keep a closed piece of work open.
