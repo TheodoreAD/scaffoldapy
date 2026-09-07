@@ -55,3 +55,14 @@ under 0.2.0 or remove under 0.3.0.
 The six `pyright: ignore` lines this repo carries were unaffected;
 `reportUnnecessaryTypeIgnoreComment` is on, so a stub bump that made one redundant would have failed
 the gate rather than gone unnoticed.
+
+## Migrated to
+
+Nothing, deliberately. The change is a lock bump: `uv.lock` records which stubs are in effect, and
+`git log` records why. The one durable fact — a freshly generated project resolves the stubs from
+the distribution's `main` on its own, because the manifest `repo-tasks` splices names them with an
+unpinned `@ git+` spec — is a property of `repo-tasks`, and reading it out of a rendered lock is
+cheaper than trusting a sentence here.
+
+The cost this repo did _not_ pay is worth nothing to preserve either: it is `repo-tasks`' own
+stub-bump pitfall, kept current there.

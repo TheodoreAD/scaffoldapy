@@ -56,3 +56,12 @@ generated repo is near is how it stops being read.
 rule to apply then is `repo-tasks`' — pin such a value in a fixture, never assert it literally —
 already written down in that repo's `contributing/test-tiers.md` under "Unit tier: mocked `c.run`",
 which is a better home than a copy of it here.
+
+## Migrated to
+
+- [`contributing/test-suite.md`](../contributing/test-suite.md), "No speculative fixtures in what we
+  generate" — the grep result, why nothing is stamped, why the cheap `AGENTS.md` sentence was
+  rejected too, and what would change the answer.
+
+Deliberately not migrated: the originating incident and the rule itself, which are `repo-tasks`'
+`contributing/test-tiers.md` and stay that repo's to keep current.

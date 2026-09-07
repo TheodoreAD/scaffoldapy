@@ -150,3 +150,17 @@ asked, since a moved import is exactly what that assertion catches: the end-to-e
 collects and renders **every** `COMBINATIONS` entry — 10 collected, 9 green, the tenth red before
 this work started and for an unrelated upstream reason (starlette 1.6.0 against the shipped
 `filterwarnings = error`, filed for `repo-tasks` the same day).
+
+## Migrated to
+
+- [`contributing/test-suite.md`](../contributing/test-suite.md) — why `tests/` is a package and
+  `support.py` imported by name, the two shadowing mechanisms the conftest route runs into, the
+  nine-repo survey behind the comparison, and both rejected options (the rename, the fixture route)
+  with the reasons they lost.
+- `tests/__init__.py` and `tests/support.py`, whose docstrings carry the short version at the site
+  it applies to; `AGENTS.md` gains a pointer and the one-line rule about not packaging
+  `template/tests/`.
+
+Deliberately not migrated: the family-wide half — why packaging beat `--import-mode=importlib`, and
+what `extraPaths` plus the `banned-api` guard cost — which is `repo-tasks`' own
+`contributing/type-checking.md` to keep current. Pointed at rather than copied.

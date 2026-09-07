@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: landed
 updated: 2026-09-08
 ---
 
@@ -98,10 +98,23 @@ unrelated upstream defect filed for `repo-tasks` the same day (starlette 1.6.0 t
 `filterwarnings = error` through a deprecated anyio alias). Not caused by, and not affected by, this
 change.
 
-[UNVERIFIED: the annotation is gone. A green run proves nothing here — green is what it was all
-along — so what closes this is `inv ci.status` on the first run after these commits are pushed,
-reading annotations rather than the conclusion. Silence there is the result, and it must be checked
-against a call known to work: `[]` means both "clean" and "the call failed".]
+**Verified by annotation, 2026-09-07, on the first run after the push** — and checked the only way
+that answers it, since the run was not even green:
+
+| run           | commit            | annotations                                      |
+| ------------- | ----------------- | ------------------------------------------------ |
+| `33220460012` | before, **green** | `warning \| Node.js 20 is deprecated … @v4`      |
+| `34162377835` | after, **red**    | `failure \| Process completed with exit code 1.` |
+
+Nothing about Node 20 on the new one, and the same
+`gh api repos/<owner>/<repo>/check-runs/<job-id>/annotations` call returns the warning on the older
+run — so the silence is real rather than a call that failed, which is the check this plan insisted
+on because `[]` means both.
+
+The pairing is sharper than the one `repo-tasks` recorded for itself: there, the annotated run was
+green and the clean one was green. Here the annotated run is the **green** one and the clean run is
+**red**, on an unrelated upstream defect in a generated repo's own gate. Two runs, and the
+conclusion column gets both of them backwards.
 
 ## Merged in: `2026-08-27-checkout-action-node20-deprecation.md`
 
@@ -118,3 +131,17 @@ until someone pulls it forward, and nothing prompts them to. Both merged plans r
 2026-08-27 one said outright that it "may deserve its own plan". It has one now —
 `plans/2026-09-08-reaching-already-generated-repos.md` — rather than being carried here, where it
 would keep a closed piece of work open.
+
+## Migrated to
+
+- [`contributing/generated-workflows.md`](../contributing/generated-workflows.md) — the pin
+  decisions, what watches them (annotations and `ci.check-actions`, and why one is not enough), the
+  `.yml`-extension blind spot that hides the conditional docs workflow, the
+  version-bump-invalidates- a-comment pitfall, and the annotation-not-conclusion check with the run
+  pair that proves it.
+
+Deliberately not migrated: the upstream reading of `checkout` v5/v6/v7 and `setup-uv` v10, which is
+`repo-tasks`' `plans/2026-08-28-node20-action-deprecation.md` and its `contributing/quality-gate.md`
+to keep current — this repo consumed that reading rather than producing it, and a second copy would
+diverge. The 14-occurrence machine-wide census is a measurement of a moment, not a fact about this
+repo. The verification transcript itself stays in git.

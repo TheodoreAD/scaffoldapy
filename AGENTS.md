@@ -38,10 +38,17 @@ Following `repo-tasks/contributing/test-tiers.md`, which is also where the shipp
   user-wide state (`direnv allow`, `~/.cache/claude-code`), and this fixture is what keeps that
   inside `tmp_path` — patching both `os.environ` and plumbum's `local.env`, because copier runs
   `_tasks` from the latter, a snapshot taken at import that `monkeypatch.setenv` never reaches.
-- `tests/support.py` — `COMBINATIONS` and friends, imported by both tiers. Deliberately **not**
-  `conftest.py`: `from conftest import ...` resolves to a different file per tier once a tier-local
-  conftest exists, and `template/tests/conftest.py` shadows the real one outright whenever pytest
-  falls back to searching from the working directory. Both confirmed live, both silent.
+- `tests/support.py` — `COMBINATIONS` and friends, imported by both tiers as `tests.support`.
+  Deliberately **not** `conftest.py`: `from conftest import ...` resolves to a different file per
+  tier once a tier-local conftest exists, and `template/tests/conftest.py` shadows the real one
+  outright whenever pytest falls back to searching from the working directory. Both confirmed live,
+  both silent.
+- `tests/` is a **package** — an `__init__.py` in it and in each tier — so that import resolves by
+  namespace rather than by `sys.path` position. Do not add one under `template/tests/`: what the
+  template generates is a separate decision.
+
+Why the tree is shaped this way, and what was rejected, is in
+[`contributing/test-suite.md`](contributing/test-suite.md).
 
 ## Two file trees, and only one of them is the template
 
@@ -50,12 +57,13 @@ Everything at this repo's root — `pyproject.toml`, `tasks.py`, `ruff.toml`, `t
 `scaffoldapy`'s _own_ dev tooling and is never copied anywhere. Editing the root copy when the
 template copy was meant is the easiest mistake to make here.
 
-Some files deliberately exist in both places. `LICENSE`, `.envrc`, `tasks.py` and
-`.github/workflows/ci.yml` are byte-identical, and `tests/unit/test_repo_sync.py` fails if they ever
-stop being — hand-syncing is not a plan on its own, which is how `ci.yml` sat on the
-pre-`repo-tasks` CI recipe at the root while the template's copy had moved on. `.gitignore` is the
-deliberate exception: the template's copy is a superset (a generated repo can have `site/` and
-`.cache/`; this one can't), so the guard checks containment rather than equality.
+Some files deliberately exist in both places. `LICENSE`, `.envrc`, `tasks.py`,
+`.github/workflows/ci.yml` and `.github/workflows/security.yml` are byte-identical, and
+`tests/unit/test_repo_sync.py` fails if they ever stop being — hand-syncing is not a plan on its
+own, which is how `ci.yml` sat on the pre-`repo-tasks` CI recipe at the root while the template's
+copy had moved on. `.gitignore` is the deliberate exception: the template's copy is a superset (a
+generated repo can have `site/` and `.cache/`; this one can't), so the guard checks containment
+rather than equality.
 
 Others deliberately exist only at the root and must **not** be added to `template/` — `ruff.toml`,
 `pyrightconfig.json`, `dprint.json`, `pytest.ini`, `.editorconfig` are pulled from `repo-tasks`'
@@ -64,7 +72,11 @@ canonical copies by `copier.yml`'s `_tasks` at generation time instead, and
 
 Interface-conditional template files encode the condition in the _filename_, e.g.
 `template/tests/unit/{% if interface == "cli" %}test_cli.py{% endif %}.jinja` — an empty rendered
-name means copier drops the file entirely.
+name means copier drops the file entirely. A conditional **workflow** file pays for that with a
+blind spot: `inv ci.check-actions --path template/.github/workflows` reads only names ending `.yml`,
+so the docs workflow's action pins have to be checked by hand. See
+[`contributing/generated-workflows.md`](contributing/generated-workflows.md), which also carries why
+the security audit is a pinned call rather than a copy.
 
 A generated repo's seeded tests live under `template/tests/unit/` — the tier that `repo-tasks`'
 canonical `pytest.ini` names in `testpaths`, so a fresh repo matches it from its first commit

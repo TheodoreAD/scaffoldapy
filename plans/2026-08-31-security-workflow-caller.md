@@ -130,3 +130,17 @@ Note this only covers **future** generated repos. The seven existing repos in th
 (`power-user-linux-setup`, `agent-skills`, `invoke-stubs`, `ingesta`, and the `*-polite-mcp` ones)
 each still need the same file added by hand, which is tracked as a `DEFERRED` in `repo-tasks`'
 `plans/2026-08-30-deps-audit-in-ci.md` rather than here.
+
+## Migrated to
+
+- [`contributing/generated-workflows.md`](../contributing/generated-workflows.md) — why the audit is
+  a separate workflow, why it is called rather than copied, the public-host requirement that makes
+  it work from a private repo, the SHA-pin decision, and the pitfall that nothing watches that pin
+  because the host publishes no releases.
+- `template/.github/workflows/security.yml` itself, which carries the short version in comments, and
+  the generated `AGENTS.md`, which tells that repo how to read a red check.
+
+Deliberately not migrated: the verification of the reusable workflow in its own repo (commit and run
+ids), which belongs to that repo, and the note that the other family repos still need a caller by
+hand — tracked as a DEFERRED in `repo-tasks`' `plans/2026-08-30-deps-audit-in-ci.md`, which is where
+the sweep is owned.
