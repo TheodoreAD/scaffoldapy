@@ -44,7 +44,7 @@ def run_in_generated_repo(dst: Path, *args: str) -> subprocess.CompletedProcess[
 
 @pytest.mark.parametrize("combo_name", COMBINATIONS)
 def test_generated_repo_passes_quality_check_out_of_the_box(
-    render: Render, isolated_home: Path, combo_name: str
+    render: Render, isolated_home: Path, monkeypatch: pytest.MonkeyPatch, combo_name: str
 ) -> None:
     """Real end-to-end: renders without skip_tasks (copier.yml's _tasks — `uv sync`, then
     `uv run inv configure` — actually runs, hitting the network and pulling repo-tasks'
@@ -60,6 +60,12 @@ def test_generated_repo_passes_quality_check_out_of_the_box(
     kind of formatting bug this test exists to catch (confirmed live 2026-08-23: a dprint
     markdown-wrapping bug in the generated README.md/SKILL.md passed a `precommit`-based version
     of this test while failing every generated repo's real CI).
+
+    Run with repo-tasks' report mode on, set here rather than inherited so CI and an agent shell
+    run the same gate. The verdict line is the proof it reached the generated repo through its
+    plain `from repo_tasks import ns` with nothing wired — the case a hand-built root `Collection`
+    silently loses. A failing command still replays its whole output, so the assertion message
+    below is no poorer for it.
     """
     dst = render(COMBINATIONS[combo_name], run_tasks=True)
     assert (dst / "pyrightconfig.json").exists()  # _tasks ran for real, configs.pull included
@@ -71,5 +77,7 @@ def test_generated_repo_passes_quality_check_out_of_the_box(
     if shutil.which("direnv"):
         assert any((isolated_home / ".local" / "share" / "direnv" / "allow").iterdir())
 
+    monkeypatch.setenv("REPO_TASKS_RUN_REPORT", "1")
     result = run_in_generated_repo(dst, "inv", "quality.check")
     assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.splitlines()[-1].startswith("quality.check | PASS | "), result.stdout
