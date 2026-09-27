@@ -1,6 +1,6 @@
 ---
-status: blocked on a repo-tasks release carrying runner.py
-updated: 2026-09-08
+status: planned
+updated: 2026-09-28
 source_repo: github.com-personal/repo-tasks
 source_session: a3c12c26-55b9-4ed1-941f-42898b4bf565.jsonl
 source_moment: 2026-09-05T21:17:08Z
@@ -143,6 +143,15 @@ everything it generates runs the tag, and report mode reaches generated repos on
 assertion. It cannot be written yet and would fail if it were: the e2e renders against the global
 tool, which is the tag. Worth adding in the same change that takes the release, so the assertion and
 the thing it asserts arrive together.]
+
+## The release landed, 2026-09-28
+
+The block above has lifted. `repo-tasks` tagged `v0.3.0` on 2026-09-08 with `runner.py` in it, and
+has since reached `v0.5.0`, which is what the global tool now reports. A plain `inv quality.check`
+here, through the ordinary install and with nothing wired, now ends
+`quality.check | PASS | 10 steps | 10.1s`. So the whole remaining work is the e2e assertion above,
+and it can be written now. The tag SHAs quoted above are as observed on 2026-09-08; `v0.2.0` has
+since been re-pointed, so read them as history rather than as refs to resolve.
 
 The `DEFERRED` below stands unchanged, and this outcome does not touch it.
 
