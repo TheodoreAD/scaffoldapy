@@ -20,8 +20,19 @@ _plumbum_env = cast(MutableMapping[str, str], cast(object, local.env))
 
 
 def _uv_dir(kind: str) -> str:
-    """The real machine's `uv cache dir` / `uv python dir`, resolved before HOME is faked."""
-    return subprocess.run(["uv", kind, "dir"], capture_output=True, text=True, check=True).stdout.strip()
+    """The real machine's `uv cache dir` / `uv python dir`, resolved before HOME is faked.
+
+    `--color never` because uv honours `FORCE_COLOR` even into a pipe, and Claude Code exports it:
+    the path came back wrapped in ANSI escapes, which made it relative, so every render built a
+    cold cache inside the generated repo and its `ruff check .` then linted the whole cache —
+    31,442 findings, and a gate that ran into pytest's timeout instead of failing (2026-09-28).
+    The absolute-path check is what turns the next such surprise into an error here."""
+    out = subprocess.run(
+        ["uv", "--color", "never", kind, "dir"], capture_output=True, text=True, check=True
+    ).stdout.strip()
+    if not Path(out).is_absolute():
+        raise RuntimeError(f"`uv {kind} dir` returned a non-absolute path: {out!r}")
+    return out
 
 
 @pytest.fixture(autouse=True)
