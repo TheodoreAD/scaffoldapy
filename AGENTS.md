@@ -17,12 +17,11 @@ repeat them here, only what's specific to this repo.
 - The e2e verdict is only as current as the **global** `repo-tasks` install it renders with, not the
   `repo-tasks` checkout next door. A template change that leans on a `repo-tasks` fix (the
   empty-`dev`-group shape did, 2026-08-25) needs that fix pushed to `repo-tasks` `main` and then
-  `inv repo-tasks.update` here first — **except that update now targets the latest tag**, and
-  `v0.2.0` is far behind `main`, so a fix that has not been released is unreachable that way and the
-  e2e cannot see it at all. `./bootstrap-repo-tasks.sh` here is still unpinned, so this repo's own
-  CI installs `main` and never has the lag — but `selfinstall.stamp` pins a **generated** repo's
-  copy to the current tag, so what this template produces runs the release while this repo runs
-  `main`.
+  `inv repo-tasks.update` here first — **except that update targets the latest tag**, so a fix that
+  has not been released is unreachable that way and the e2e cannot see it at all.
+  `./bootstrap-repo-tasks.sh` is pinned too (re-stamped at each consumer sweep with
+  `inv repo-tasks.stamp`), so this repo's CI and every repo it generates run a release. Unreleased
+  `repo-tasks` reaches this e2e tier only through `repo-tasks`' own `canary.yml`.
 - Don't reach for a throwaway render script to check template output: `tests/conftest.py`'s `render`
   fixture sandboxes any combination into `tmp_path` in one call, and the suite already renders every
   `COMBINATIONS` entry.
