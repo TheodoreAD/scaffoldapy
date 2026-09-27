@@ -1,0 +1,7 @@
+[pyright]
+# template/ holds literal Python a generated repo receives verbatim (tasks.py, tests/conftest.py),
+# so it is type-checked here against this repo's own environment rather than first in a fresh render.
+extra-include = ["template*"]
+# plans/ holds a plan's evidence scripts: probes rather than product code, deleted with the plan
+# when it retires, and not written to pass the gate's type check.
+unchecked = ["plans*"]

@@ -23,7 +23,7 @@ dev = [
   "invoke-stubs @ git+https://github.com/TheodoreAD/invoke-stubs",
   "pytest-cov",
   "zizmor",
-  "hadolint-py",
+  "hadolint-py!=2.15.1.2",
   "pytest-socket",
   "pytest-timeout",
 ]
