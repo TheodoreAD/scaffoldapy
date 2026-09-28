@@ -12,8 +12,9 @@ repeat them here, only what's specific to this repo.
 - `inv dev-env.setup` once after cloning, then plain `pytest`/`inv` — no `uv run` prefix.
 - `inv quality.precommit` before considering a change done.
 - **Anything under `template/` also needs `inv test.all`.** `precommit` runs the unit tier only
-  (~6s); the e2e that catches template _content_ bugs lives in the integration tier (~50s) and does
-  not run there. CI runs both, but finding it locally is the point.
+  (~12s); the e2e that catches template _content_ bugs lives in the integration tier (~90s) and does
+  not run there. Run `test.all` in the background rather than waiting on it. CI runs both, but
+  finding it locally is the point.
 - The e2e verdict is only as current as the **global** `repo-tasks` install it renders with, not the
   `repo-tasks` checkout next door. A template change that leans on a `repo-tasks` fix (the
   empty-`dev`-group shape did, 2026-08-25) needs that fix pushed to `repo-tasks` `main` and then
