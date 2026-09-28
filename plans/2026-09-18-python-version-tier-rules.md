@@ -148,9 +148,20 @@ everything unconstrained while yielding to every declared floor. It is a precond
 companion task: adopting the table above without it produces repos that declare a floor the dev
 machine ignores.
 
+**Met 2026-09-28, after a reboot at 15:18.** `~/.config/uv/.python-version` holds `3.14`, and
+`UV_PYTHON` is gone from the agent shell and from `systemctl --user show-environment`.
+`uv python
+find` gives `3.14.5` unconstrained and `3.11.15` with `--project` pointed at
+`repo-tasks`, so a declared floor now binds. The dotfile removal (09-19) had not been enough on its
+own: gnome-session re-exports its environment into the systemd user manager at exit, and a
+long-lived Claude daemon kept that manager alive across re-logins. `power-user-linux-setup` owns
+that mechanism and has parked it. A process started before the reboot still carries the old value,
+so re-check `env | rg UV_` in any session older than that.
+
 ## Recommended direction
 
-1. **The machine-level fix first**, since nothing else binds until it lands.
+1. ~~**The machine-level fix first**, since nothing else binds until it lands.~~ Done 2026-09-28,
+   see above.
 2. **The template's tier question**, which is this file's own subject and the thing that stops the
    problem recurring in repos that do not exist yet.
 3. **The per-repo straightening**, filed separately for each: `agent-skills`, `invoke-stubs`, the
