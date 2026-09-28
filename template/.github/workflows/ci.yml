@@ -16,6 +16,10 @@ permissions:
 
 jobs:
   quality:
+    # Floats on purpose. The move from Ubuntu 24.04 to 26.04 (from 2026-10-19) was measured green
+    # on 2026-09-28, this template's own renders included, and the decision lives in repo-tasks'
+    # contributing/quality-gate.md, "Workflow hardening". Do not pin ubuntu-26.04 to test ahead:
+    # actionlint does not know that label yet and the gate fails on it.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
