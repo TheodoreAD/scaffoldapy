@@ -161,8 +161,9 @@ so re-check `env | rg UV_` in any session older than that.
 
 1. ~~**The machine-level fix first**, since nothing else binds until it lands.~~ Done 2026-09-28,
    see above.
-2. **The template's tier question**, which is this file's own subject and the thing that stops the
-   problem recurring in repos that do not exist yet.
+2. ~~**The template's tier question**, which is this file's own subject and the thing that stops the
+   problem recurring in repos that do not exist yet.~~ Landed 2026-09-28 as `44d10a9`, with the e2e
+   floor check in `0546976`. The reasons live in `copier.yml`'s comment on `python_floor`.
 3. **The per-repo straightening**, filed separately for each: `agent-skills`, `invoke-stubs`, the
    three `*-polite-mcp` servers, `ingesta`, and this repo. `repo-tasks` is already correct as of
    2026-09-13 and is the worked example of what "correct" looks like.
@@ -175,7 +176,10 @@ rather than a reason to stop it.]
 
 ## Step 2 design: one answer, and repo-tasks derives the rest
 
-Drafted 2026-09-28 from reading the template and the installed `repo-tasks` v0.5.0, not yet built.
+Drafted 2026-09-28 from reading the template and the installed `repo-tasks` v0.5.0, and built the
+same day as designed. The e2e passed 11 of 11 with every 3.11-default combination in a 3.11 venv,
+which settles the `[UNVERIFIED]` above for generated code, though not for the existing repos in
+step 3.
 
 **The template has to write one declaration, not four.** `repo-tasks` already reads everything else
 from `requires-python`: `configs.pull` derives pyright's `pythonVersion` from it, `venv.pin` writes
