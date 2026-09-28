@@ -168,6 +168,27 @@ so re-check `env | rg UV_` in any session older than that.
    three `*-polite-mcp` servers, `ingesta`, and this repo. `repo-tasks` is already correct as of
    2026-09-13 and is the worked example of what "correct" looks like.
 
+### Step 3 status, 2026-09-28
+
+Measured read-only with the attached `floor-audit.py` after the reboot. The columns are declared
+floor, `.python-version`, and the venv's own interpreter.
+
+| repo                         | floor / pin / venv    | state                                                 |
+| ---------------------------- | --------------------- | ----------------------------------------------------- |
+| `freshful-polite-mcp`        | 3.11 / 3.11 / 3.11.15 | correct                                               |
+| `invoke-stubs`               | 3.11 / 3.11 / 3.11.15 | correct                                               |
+| `power-user-linux-setup`     | 3.14 / 3.14 / 3.14.5  | correct; the contradiction noted above is resolved    |
+| this repo                    | 3.14 / 3.14 / 3.14.5  | moved from `>=3.11` on 2026-09-28                     |
+| `ingesta`                    | 3.14 / – / 3.14.5     | needs `.python-version`; its store plans cover it     |
+| `olx-`, `temu-polite-mcp`    | 3.11 / – / 3.14.5     | pin and recreate; their store plans cover it          |
+| `repo-tasks`, `agent-skills` | 3.11 / 3.11 / 3.14.5  | venv drifted back under `UV_PYTHON`; filed 2026-09-28 |
+
+The 3.14 venvs in the 3.11 repos were not a failure of any repo's setup. `UV_PYTHON` stayed in the
+systemd user manager until the reboot and rebuilt those venvs from agent sessions. The three 09-20
+store plans that said it was gone carry a dated correction. What is left of step 3 is work in those
+repos' own sessions, so this plan can retire once they report back, or sooner if the filed plans are
+judged enough on their own.
+
 [UNVERIFIED: that a 3.11 venv is even resolvable in the six repos that would move to one. It was in
 `repo-tasks` — full gate green on 3.11.15, 691 tests — but that repo has been type-checking at its
 floor since 2026-08-30. A repo that has never had anything run at 3.11 is where the
