@@ -60,6 +60,13 @@ COMBINATIONS: dict[str, dict[str, object]] = {
         "interface": "cli",
         "fetch_strategy": "none",
     },
+    # Every other entry takes python_floor's interface default (web_service 3.14, the rest 3.11).
+    # This one answers against its default, so the non-default path renders for real too.
+    "cli-personal-tooling": {
+        "interface": "cli",
+        "fetch_strategy": "none",
+        "python_floor": "3.14",
+    },
     "web_service-no-fetch": {
         "interface": "web_service",
         "fetch_strategy": "none",

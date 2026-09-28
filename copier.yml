@@ -23,6 +23,21 @@ interface:
     "Agent Skill only, no server process — e.g. product-research-pipeline": skill
     "Plain importable package, no entrypoint": library
 
+# One answer, and repo-tasks derives the rest from the requires-python it becomes: pyright's
+# pythonVersion (configs.pull), and the venv check. .python-version is rendered from the same
+# answer, so the dev venv, the first uv sync and CI all run at the floor. setup-uv exports no
+# UV_PYTHON without a python-version input, which leaves uv reading this file, so ci.yml needs no
+# matrix and stays byte-identical to the root copy. The default is 3.11 for every interface a
+# consumer installs: a wrong 3.11 still runs on 3.14, while a wrong 3.14 breaks every consumer on
+# install. See plans/2026-09-18-python-version-tier-rules.md.
+python_floor:
+  type: str
+  help: "Who picks the interpreter this code runs on?"
+  default: "{{ '3.14' if interface == 'web_service' else '3.11' }}"
+  choices:
+    "Consumers do — a library, an installed tool or MCP server, anything someone else installs (>=3.11)": "3.11"
+    "You do — a service you deploy, or tooling only you run (>=3.14)": "3.14"
+
 fetch_strategy:
   type: str
   when: "{{ interface not in ['skill', 'library'] }}"

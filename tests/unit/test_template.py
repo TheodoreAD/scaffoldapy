@@ -73,6 +73,19 @@ def test_generates_valid_pyproject_and_config(render: Render, answers: dict[str,
     assert claude_skills.resolve() == agents_skills.resolve()
 
 
+@pytest.mark.parametrize("answers", COMBINATIONS.values(), ids=COMBINATIONS.keys())
+def test_python_floor_is_declared_once_and_pinned_to_match(render: Render, answers: dict[str, object]) -> None:
+    """requires-python and .python-version come from the same answer, so they agree at birth.
+    repo-tasks' venv.check guards them afterwards. The expected floor is spelled out rather than
+    read back from the answers file, so a wrong interface default fails here too."""
+    default = "3.14" if answers["interface"] == "web_service" else "3.11"
+    floor = str(answers.get("python_floor", default))
+    dst = render(answers)
+    parsed = tomllib.loads((dst / "pyproject.toml").read_text())
+    assert parsed["project"]["requires-python"] == f">={floor}"
+    assert (dst / ".python-version").read_text() == f"{floor}\n"
+
+
 def test_mcp_server_seeds_server_entrypoint(render: Render) -> None:
     dst = render(COMBINATIONS["mcp_server-http-single-source"])
     assert (dst / "src" / "example_pkg" / "server.py").exists()
