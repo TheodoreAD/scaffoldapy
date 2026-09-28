@@ -1,6 +1,6 @@
 ---
-status: idea
-updated: 2026-09-18
+status: planned
+updated: 2026-09-28
 source_repo: github.com-personal/repo-tasks
 source_session: 14237e4b-3a66-4207-8a3a-882552c86680.jsonl
 source_moment: 2026-09-18T09:40:00Z
@@ -149,9 +149,8 @@ companion task: adopting the table above without it produces repos that declare 
 machine ignores.
 
 **Met 2026-09-28, after a reboot at 15:18.** `~/.config/uv/.python-version` holds `3.14`, and
-`UV_PYTHON` is gone from the agent shell and from `systemctl --user show-environment`.
-`uv python
-find` gives `3.14.5` unconstrained and `3.11.15` with `--project` pointed at
+`UV_PYTHON` is gone from the agent shell and from `systemctl --user show-environment`. uv's
+interpreter lookup gives `3.14.5` unconstrained and `3.11.15` with `--project` pointed at
 `repo-tasks`, so a declared floor now binds. The dotfile removal (09-19) had not been enough on its
 own: gnome-session re-exports its environment into the systemd user manager at exit, and a
 long-lived Claude daemon kept that manager alive across re-logins. `power-user-linux-setup` owns
@@ -173,6 +172,61 @@ so re-check `env | rg UV_` in any session older than that.
 floor since 2026-08-30. A repo that has never had anything run at 3.11 is where the
 `typing.override` class of finding lives, and turning some up is the expected outcome of the sweep
 rather than a reason to stop it.]
+
+## Step 2 design: one answer, and repo-tasks derives the rest
+
+Drafted 2026-09-28 from reading the template and the installed `repo-tasks` v0.5.0, not yet built.
+
+**The template has to write one declaration, not four.** `repo-tasks` already reads everything else
+from `requires-python`: `configs.pull` derives pyright's `pythonVersion` from it, `venv.pin` writes
+`.python-version` from it, and `venv.check`/`venv.recreate` hold the venv to it. So the four fan-out
+targets reduce to:
+
+| target                 | how it follows the answer                                                                |
+| ---------------------- | ---------------------------------------------------------------------------------------- |
+| `requires-python`      | `pyproject.toml.jinja`, today hard-coded `>=3.11`                                        |
+| `.python-version`      | rendered from the same answer, so it cannot disagree at birth; `venv.check` guards later |
+| first `uv sync` / venv | uv reads `.python-version`, so the dev venv is built at the floor with nothing added     |
+| CI                     | the same file: see below                                                                 |
+
+**CI needs no change, and `ci.yml` stays byte-identical to the root copy.** Read from `setup-uv`'s
+source (`src/utils/inputs.ts`, `getPythonVersion`, cloned 2026-09-28 at `227a0f6`): without a
+`python-version` input it exports no `UV_PYTHON`, so uv takes the project's `.python-version`. A
+3.11-tier repo's single gate job then runs at 3.11, and the ordinary gate is the floor check, the
+same "develop at the floor" rule the skills tier states. The table's "→ 3.14 if warranted" is the
+only matrix left, and "if warranted" means not at generation. A matrix would also have to leave
+`test_repo_sync`'s byte-identical set, which is a cost with nothing yet asking for it.
+
+**Two floors, not five tiers.** Every row of the table above lands on `>=3.11` or `>=3.14`, so the
+answer is the floor and the tier is only the explanation. Asked as who picks the interpreter, the
+same axis as the table:
+
+- **Consumers do** (library, installed tool, MCP server, anything someone else installs): `3.11`
+- **You do** (a service you deploy, tooling only you run): `3.14`
+
+**Defaulted from `interface`, so most runs press Enter.** `web_service` defaults to 3.14 and every
+other interface to 3.11. A wrong 3.11 costs little, since it still runs on 3.14. A wrong 3.14 breaks
+every consumer on install, so the safe side is the default wherever a case could go either way.
+
+Also in the change:
+
+- `pyproject.toml.jinja`'s `typing-extensions` exists only because `typing.override` is 3.12+. Keep
+  it unconditional, since one import path in the generated code is simpler than two, and fix the
+  comment so it names the 3.11 tier rather than a fixed floor.
+- `COMBINATIONS`: the existing entries keep their interface default. Add one entry that overrides
+  it, `cli` at 3.14, so both values of the new axis are rendered for real. The e2e will build 3.11
+  venvs for the first time, which is where this plan's `[UNVERIFIED]` above gets its answer for
+  generated code.
+- `tests/unit/test_template.py`: assert `requires-python` and `.python-version` agree for every
+  combination.
+
+[DECISION: **`skill` defaults to 3.11.** Settled by the user 2026-09-28. It depends on `fastmcp` and
+ships as a package, so it could have been the "you pick" tier, but consumers or other agents may
+install and run it, and 3.11 is the side that fails nobody.]
+
+[DECISION: **a question, defaulted from `interface`, not a silent derivation.** Settled by the user
+2026-09-28. A `cli` that is personal tooling picks 3.14 at generation instead of hand-editing two
+files afterwards, and the default keeps the common case to one keypress.]
 
 ## Attachments
 
