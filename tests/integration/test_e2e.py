@@ -81,3 +81,9 @@ def test_generated_repo_passes_quality_check_out_of_the_box(
     result = run_in_generated_repo(dst, "inv", "quality.check")
     assert result.returncode == 0, result.stdout + result.stderr
     assert result.stdout.splitlines()[-1].startswith("quality.check | PASS | "), result.stdout
+
+    # The gate above ran in a venv built from .python-version, so this is what makes it a check at
+    # the declared floor rather than at whatever uv would have picked: repo-tasks' venv.check exits
+    # nonzero unless the venv's interpreter and .python-version both match requires-python.
+    check = run_in_generated_repo(dst, "inv", "venv.check")
+    assert check.returncode == 0, check.stdout + check.stderr

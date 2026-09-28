@@ -52,7 +52,7 @@ def isolated_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     render never re-downloads an interpreter into the throwaway HOME). Both resolved via uv itself
     rather than assumed under ~/.cache — UV_CACHE_DIR or a uv.toml can relocate either. The XDG
     overrides are dropped rather than repointed so `direnv` and anything else XDG-aware falls back
-    to the fake HOME too.
+    to the fake HOME too. `UV_PYTHON` is dropped for the reason given at the removals list.
     """
     home = tmp_path / "home"
     home.mkdir()
@@ -61,7 +61,10 @@ def isolated_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         "UV_CACHE_DIR": _uv_dir("cache"),
         "UV_PYTHON_INSTALL_DIR": _uv_dir("python"),
     }
-    removals = ("XDG_CACHE_HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME")
+    # UV_PYTHON outranks a generated repo's .python-version, so a shell still carrying one (this
+    # machine exported 3.14 until 2026-09-28) would build every venv at that version and hide the
+    # floor this tier checks.
+    removals = ("XDG_CACHE_HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "UV_PYTHON")
     # Two environments, not one: copier runs _tasks with plumbum's `local.env`, a snapshot of
     # os.environ taken when plumbum was first imported, so a monkeypatched os.environ alone leaves
     # `inv configure` writing to the real HOME while run_in_generated_repo (plain subprocess) sees
