@@ -1,8 +1,10 @@
 # Agent instructions
 
-Cross-tool instructions for AI coding agents working in this repo. Universal conventions (sudo/ssh
-askpass, Bash/allowlist discipline, cross-session memory policy) live in `~/AGENTS.md` — no need to
-repeat them here, only what's specific to this repo.
+Cross-tool instructions for AI coding agents working in this repo, read directly by Claude Code,
+Codex, Copilot and the rest — there is deliberately no `CLAUDE.md`, whose presence would stop Claude
+Code reading this file. Universal conventions (sudo/ssh askpass, Bash/allowlist discipline,
+cross-session memory policy) live in `~/.agents/AGENTS.md` — no need to repeat them here, only
+what's specific to this repo.
 
 ## Build & test
 

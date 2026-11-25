@@ -60,11 +60,11 @@ def test_generates_valid_pyproject_and_config(render: Render, answers: dict[str,
     assert recorded["_src_path"]
     assert recorded["package_name"] == pkg
 
-    agents_md = dst / "AGENTS.md"
-    assert agents_md.exists()
-    claude_md = dst / "CLAUDE.md"
-    assert claude_md.is_symlink()
-    assert claude_md.resolve() == agents_md.resolve()
+    # AGENTS.md is the only instructions file. Claude Code reads it itself since 2.1.277, but only
+    # while no CLAUDE.md exists in the repo or above it, so generating one would hide this file.
+    assert (dst / "AGENTS.md").is_file()
+    assert not (dst / "CLAUDE.md").exists()
+    assert not (dst / "CLAUDE.md").is_symlink()
 
     agents_skills = dst / ".agents" / "skills"
     assert (agents_skills / "README.md").exists()
