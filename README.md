@@ -15,7 +15,7 @@ server does.
 ## Scope
 
 This is the "generated once, then hand-maintained per repo, diverging immediately and legitimately"
-piece — project structure, `pyproject.toml`, `AGENTS.md`/`.agents/skills`, `mkdocs.yml`. Anything a
+piece — project structure, `pyproject.toml`, `AGENTS.md`/`skills/`, `mkdocs.yml`. Anything a
 generated repo needs _repeatedly_, identically, forever (quality tooling, venv lifecycle, canonical
 tool config) is [`repo-tasks`](https://github.com/TheodoreAD/repo-tasks)'s job instead — pulled in
 automatically at generation time (`copier.yml`'s `_tasks`: `repo-tasks configs.ensure-deps`,

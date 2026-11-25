@@ -8,3 +8,9 @@ dist/
 .env
 site/
 .cache/
+
+# Agent skills are authored in skills/<name>/; these are install targets, written per clone by
+# `inv dev-env.setup` or by trying another skill with `skills add`.
+.agents/skills/
+.claude/skills/
+skills-lock.json

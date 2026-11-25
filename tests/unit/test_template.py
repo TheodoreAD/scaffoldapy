@@ -66,11 +66,15 @@ def test_generates_valid_pyproject_and_config(render: Render, answers: dict[str,
     assert not (dst / "CLAUDE.md").exists()
     assert not (dst / "CLAUDE.md").is_symlink()
 
-    agents_skills = dst / ".agents" / "skills"
-    assert (agents_skills / "README.md").exists()
-    claude_skills = dst / ".claude" / "skills"
-    assert claude_skills.is_symlink()
-    assert claude_skills.resolve() == agents_skills.resolve()
+    # Skills are authored in skills/ and installed per clone; nothing under the install targets is
+    # generated, and all three are ignored, so trying a skill in the project changes nothing git
+    # tracks and no symlink is committed (a Windows checkout without Developer Mode breaks one).
+    assert (dst / "skills" / "README.md").exists()
+    assert not (dst / ".agents").exists()
+    assert not (dst / ".claude" / "skills").exists()
+    ignored = (dst / ".gitignore").read_text().splitlines()
+    for target in (".agents/skills/", ".claude/skills/", "skills-lock.json"):
+        assert target in ignored, target
 
 
 @pytest.mark.parametrize("answers", COMBINATIONS.values(), ids=COMBINATIONS.keys())
@@ -122,9 +126,9 @@ def test_browser_session_seeds_fetch_browser_not_http_fetch(render: Render) -> N
 def test_skill_seeds_agent_skill_dir_and_orchestrator(render: Render) -> None:
     dst = render(COMBINATIONS["skill"])
     # Kebab-case, matching the SKILL.md `name:` field and every skill in the family — the
-    # directory name is the skill's identity to Claude Code, so a snake_case package_name must
+    # directory name is the skill's identity to every agent, so a snake_case package_name must
     # not leak into it.
-    assert (dst / ".agents" / "skills" / "example-pkg" / "SKILL.md").exists()
+    assert (dst / "skills" / "example-pkg" / "SKILL.md").exists()
     assert (dst / "src" / "example_pkg" / "orchestrator.py").exists()
     assert not (dst / "src" / "example_pkg" / "core").exists()
 
@@ -134,9 +138,9 @@ def test_library_seeds_nothing_but_the_bare_package(render: Render) -> None:
     assert (dst / "src" / "example_pkg" / "__init__.py").exists()
     for extra in ("server.py", "cli.py", "app.py", "orchestrator.py", "core", "sources"):
         assert not (dst / "src" / "example_pkg" / extra).exists()
-    # .agents/skills/ itself is unconditional (see test_generates_valid_pyproject_and_config) —
-    # only a shipped skill payload is interface-specific.
-    assert not (dst / ".agents" / "skills" / "example-pkg").exists()
+    # skills/ itself is unconditional (see test_generates_valid_pyproject_and_config) — only a
+    # shipped skill payload is interface-specific.
+    assert not (dst / "skills" / "example-pkg").exists()
 
 
 def test_library_seeds_a_smoke_test(render: Render) -> None:

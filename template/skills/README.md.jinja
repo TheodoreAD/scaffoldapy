@@ -1,0 +1,15 @@
+# Skills for {{ package_name }}
+
+Agent skills this project authors live here, one per directory: `skills/<name>/SKILL.md`. This is
+the source, and it is committed — the same layout a published skills repo uses, so
+`npx skills add <owner>/<repo>` can install them anywhere.
+
+Agents do not read this directory. `inv dev-env.setup` installs every skill here into
+`.agents/skills/`, which Codex, Copilot, Gemini CLI, opencode, Cursor and most other agents read,
+and links each one from `.claude/skills/` for Claude Code. Re-run `inv agents.install-skills` after
+editing a skill: the installed copies do not follow the source. Without repo-tasks, the same step is
+`npx skills add ./skills --agent universal claude-code --skill '*' --yes`.
+
+`.agents/skills/`, `.claude/skills/` and `skills-lock.json` are gitignored, so trying another skill
+in this project with `npx skills add <source> --agent universal claude-code` changes nothing git
+tracks; `npx skills remove --skill <name>` ends the trial.

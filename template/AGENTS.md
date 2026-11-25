@@ -8,8 +8,9 @@ what's specific to this repo.
 
 ## Build & test
 
-- `inv dev-env.setup` once after cloning — creates `.venv`, activates it via direnv, and wires
-  Claude Code's Bash tool to pick it up too.
+- `inv dev-env.setup` once after cloning — creates `.venv`, activates it via direnv, wires Claude
+  Code's Bash tool to pick it up too, and installs this repo's skills from `skills/` for every agent
+  (`skills/README.md` has the layout).
 - `inv quality.precommit` before considering a change done — fixes what's auto-fixable, then runs
   the full check gate.
 - `pytest` — tests live in `tests/unit/`, the tier the quality gate runs.
