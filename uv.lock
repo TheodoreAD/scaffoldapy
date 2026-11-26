@@ -206,7 +206,7 @@ wheels = [
 [[package]]
 name = "invoke-stubs"
 version = "0.3.1"
-source = { git = "https://github.com/TheodoreAD/invoke-stubs#5c0836daf76f2e5b41debafdf73f42ca8572e6cc" }
+source = { git = "https://github.com/TheodoreAD/invoke-stubs#a4b480bd8bfc03a88f9753c76e64ebc27cd659a9" }
 
 [[package]]
 name = "jinja2"
