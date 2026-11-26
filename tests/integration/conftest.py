@@ -40,10 +40,11 @@ def isolated_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """A fresh, empty HOME for every test in this tier, yielded as a Path.
 
     A generated repo's `inv configure` writes user-wide state — `direnv allow` records the .envrc
-    under ~/.local/share/direnv/allow, `agents.wire-claude-hook` drops an env cache file under
-    ~/.cache/claude-code — and both copier's _tasks and run_in_generated_repo inherit this process's
-    environment. Before this fixture every real render left one of each behind on the dev machine
-    (292 of each measured 2026-08-24, all pointing at long-deleted pytest-of-* directories). Autouse,
+    under ~/.local/share/direnv/allow — and both copier's _tasks and run_in_generated_repo inherit
+    this process's environment. Before this fixture every real render left one behind on the dev
+    machine (292 measured 2026-08-24, all pointing at long-deleted pytest-of-* directories, beside
+    as many ~/.cache/claude-code env files from repo-tasks' `agents.wire-claude-hook`, which
+    v0.8.0 removed). Autouse,
     same reasoning as repo-tasks' `tmp_cwd`: taking a fixture is something you can't forget, where a
     `monkeypatch.setenv` first line is.
 
