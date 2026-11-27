@@ -76,6 +76,12 @@ def test_generates_valid_pyproject_and_config(render: Render, answers: dict[str,
     for target in (".agents/skills/", ".claude/skills/", "skills-lock.json"):
         assert target in ignored, target
 
+    # Text is stored and checked out as LF on every OS, so a Windows clone hands dprint and every
+    # shell script the line endings they expect; batch files alone stay CRLF.
+    attributes = (dst / ".gitattributes").read_text().splitlines()
+    assert "* text=auto eol=lf" in attributes
+    assert any(line.split() == ["*.bat", "text", "eol=crlf"] for line in attributes)
+
 
 @pytest.mark.parametrize("answers", COMBINATIONS.values(), ids=COMBINATIONS.keys())
 def test_python_floor_is_declared_once_and_pinned_to_match(render: Render, answers: dict[str, object]) -> None:
